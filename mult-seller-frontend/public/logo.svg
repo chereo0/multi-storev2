@@ -1,0 +1,27 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern Multi-Seller Logo -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo Icon - Simplified Shopping/Store Symbol -->
+  <rect x="2" y="8" width="24" height="24" rx="4" fill="url(#logoGradient)" opacity="0.9"/>
+  <rect x="6" y="12" width="4" height="4" rx="1" fill="white"/>
+  <rect x="12" y="12" width="4" height="4" rx="1" fill="white"/>
+  <rect x="18" y="12" width="4" height="4" rx="1" fill="white"/>
+  <rect x="6" y="18" width="6" height="2" rx="1" fill="white"/>
+  <rect x="14" y="18" width="6" height="2" rx="1" fill="white"/>
+  <rect x="22" y="18" width="2" height="2" rx="1" fill="white"/>
+  
+  <!-- Company Name -->
+  <text x="32" y="16" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#111827">
+    Multi
+  </text>
+  <text x="32" y="32" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="#F59E0B">
+    Seller
+  </text>
+</svg>
+
