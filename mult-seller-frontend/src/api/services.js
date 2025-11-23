@@ -291,9 +291,18 @@ const mockReviews = {
 
 // API Functions
 export const getCategories = async () => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return { success: true, data: mockCategories };
+  try {
+    const response = await api.get("/categories");
+    // Normalize response - backend may return { success, data } or just array
+    if (response && response.data) {
+      const data = response.data.data || response.data;
+      return { success: true, data: Array.isArray(data) ? data : [] };
+    }
+    return { success: false, data: [] };
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return { success: false, data: [] };
+  }
 };
 
 export const getStores = async () => {
@@ -360,54 +369,19 @@ export const getStoresByCategory = async (categoryIdOrSlug) => {
       }));
       console.log("✅ Mapped stores:", mapped.length, "items");
 
-      if (Array.isArray(mapped) && mapped.length === 0) {
-        // try to find mock fallback
-        let mockCat = null;
-        if (typeof categoryIdOrSlug === "number" || /^[0-9]+$/.test(String(categoryIdOrSlug))) {
-          mockCat = mockCategories.find((c) => c.id === Number(categoryIdOrSlug));
-        } else {
-          mockCat = mockCategories.find((c) => c.slug === String(categoryIdOrSlug));
-        }
-        if (mockCat) {
-          const fallbackStores = mockStores.filter((s) => s.category === mockCat.name);
-          if (fallbackStores && fallbackStores.length > 0) {
-            // map fallback stores to same shape
-            const fb = fallbackStores.map((s) => ({
-              id: s.id,
-              name: s.name,
-              description: s.description,
-              logo: s.logo,
-              banner: s.banner,
-              rating: s.rating,
-              reviewCount: s.reviewCount || 0,
-              category: s.category,
-              raw: s,
-            }));
-            return { success: true, data: fb };
-          }
-        }
-      }
+      // Return only API data - no mock fallback
       return { success: !!ok, data: mapped };
     }
+    
+    // If res.data is empty/undefined
+    console.warn("API response has no data");
+    return { success: false, data: [] };
+    
   } catch (err) {
-    // If the API call fails (404, CORS, etc.) we'll fallback to mock data below
-    console.warn("getStoresByCategory API failed, falling back to mock:", err?.message || err);
+    // If the API call fails, return error
+    console.error("getStoresByCategory API failed:", err?.message || err);
+    return { success: false, data: [], error: err?.message || "Failed to fetch stores by category" };
   }
-
-  // Accept id or slug for convenience (local mock fallback)
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  let category = null;
-  if (
-    typeof categoryIdOrSlug === "number" ||
-    /^[0-9]+$/.test(String(categoryIdOrSlug))
-  ) {
-    category = mockCategories.find((c) => c.id === Number(categoryIdOrSlug));
-  } else {
-    category = mockCategories.find((c) => c.slug === String(categoryIdOrSlug));
-  }
-  if (!category) return { success: false, data: [] };
-  const stores = mockStores.filter((s) => s.category === category.name);
-  return { success: true, data: stores };
 };
 
 export const getStore = async (storeId) => {
