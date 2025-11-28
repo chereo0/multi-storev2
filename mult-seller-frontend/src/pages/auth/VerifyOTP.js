@@ -126,31 +126,83 @@ const VerifyOTP = () => {
 
       // Handle both success: 1 and success: true patterns
       if (response.ok && (data.success === 1 || data.success === true)) {
+        console.log('VerifyOTP: Full API response:', data);
+        
+        // Extract token first - check all possible locations
+        const authToken = data.token || 
+                         data.data?.token || 
+                         data.auth_token || 
+                         data.data?.auth_token ||
+                         data.access_token ||
+                         data.data?.access_token;
+        
+        // Extract user ID from all possible locations
+        const userId = data.user?.id || 
+                      data.data?.user?.id || 
+                      data.data?.id ||
+                      data.id ||
+                      userData?.id;
+        
+        console.log('VerifyOTP: Extracted userId:', userId);
+        console.log('VerifyOTP: Extracted authToken:', authToken);
+        
         // Store user data and login
         const userInfo = {
-          id: userData.id || data.user?.id || data.data?.user?.id,
+          id: userId,
           name: `${userData.firstname} ${userData.lastname}`,
           email: userData.email,
           username: userData.username,
           telephone: userData.telephone,
           avatar: data.user?.avatar || data.data?.user?.avatar || 'https://via.placeholder.com/40',
           isGuest: false,
-          verified: true
+          verified: true,
+          token: authToken // Include token in userInfo
         };
         
-        localStorage.setItem('user', JSON.stringify(userInfo));
-        if (data.token || data.data?.token) {
-          const token = data.token || data.data.token;
-          localStorage.setItem('auth_token', token);
-          console.log('VerifyOTP: Stored auth token:', token);
+        // Store token in localStorage and sessionStorage
+        if (authToken) {
+          localStorage.setItem('auth_token', authToken);
+          sessionStorage.setItem('auth_token', authToken);
+          console.log('VerifyOTP: Stored auth token:', authToken);
+        } else {
+          // If no auth token returned, use the client token as fallback
+          // This allows the user to be logged in even without an auth token
+          const clientToken = localStorage.getItem('client_token');
+          if (clientToken) {
+            localStorage.setItem('auth_token', clientToken);
+            sessionStorage.setItem('auth_token', clientToken);
+            userInfo.token = clientToken;
+            console.log('VerifyOTP: No auth token in response, using client token as fallback');
+          } else {
+            console.warn('VerifyOTP: No auth token or client token available');
+          }
         }
         
-        // Login user with token
-        const token = data.token || data.data?.token;
-        if (token) {
-          userInfo.token = token;
-        }
-        login(userInfo);
+        // Store user in both storages
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        sessionStorage.setItem('user', JSON.stringify(userInfo));
+        
+        console.log('VerifyOTP: Calling login with userInfo:', userInfo);
+        console.log('VerifyOTP: Storage state before login:', {
+          localStorage_user: !!localStorage.getItem('user'),
+          localStorage_token: !!localStorage.getItem('auth_token'),
+          sessionStorage_user: !!sessionStorage.getItem('user'),
+          sessionStorage_token: !!sessionStorage.getItem('auth_token')
+        });
+        
+        // Login user with complete userInfo including token
+        const loginResult = await login(userInfo);
+        
+        console.log('VerifyOTP: Login result:', loginResult);
+        console.log('VerifyOTP: Storage state after login:', {
+          localStorage_user: !!localStorage.getItem('user'),
+          localStorage_token: !!localStorage.getItem('auth_token'),
+          sessionStorage_user: !!sessionStorage.getItem('user'),
+          sessionStorage_token: !!sessionStorage.getItem('auth_token')
+        });
+        
+        // Small delay to ensure state updates propagate
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Navigate to homepage
         navigate('/home');
@@ -177,6 +229,9 @@ const VerifyOTP = () => {
             const retryData = await retryResponse.json();
             
             if (retryResponse.ok && (retryData.success === 1 || retryData.success === true)) {
+              // Extract token first
+              const authToken = retryData.token || retryData.data?.token || retryData.auth_token || retryData.data?.auth_token;
+              
               // Same success handling as above
               const userInfo = {
                 id: userData.id || retryData.user?.id || retryData.data?.user?.id,
@@ -186,17 +241,22 @@ const VerifyOTP = () => {
                 telephone: userData.telephone,
                 avatar: retryData.user?.avatar || retryData.data?.user?.avatar || 'https://via.placeholder.com/40',
                 isGuest: false,
-                verified: true
+                verified: true,
+                token: authToken // Include token in userInfo
               };
               
-              localStorage.setItem('user', JSON.stringify(userInfo));
-              if (retryData.token || retryData.data?.token) {
-                const token = retryData.token || retryData.data.token;
-                localStorage.setItem('auth_token', token);
-                console.log('VerifyOTP (retry): Stored auth token:', token);
+              // Store token in localStorage and sessionStorage
+              if (authToken) {
+                localStorage.setItem('auth_token', authToken);
+                sessionStorage.setItem('auth_token', authToken);
+                console.log('VerifyOTP (retry): Stored auth token:', authToken);
               }
               
-              login(userInfo);
+              // Store user in both storages
+              localStorage.setItem('user', JSON.stringify(userInfo));
+              sessionStorage.setItem('user', JSON.stringify(userInfo));
+              
+              await login(userInfo);
               navigate('/home');
               return;
             } else {

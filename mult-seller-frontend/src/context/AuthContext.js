@@ -205,19 +205,31 @@ export const AuthProvider = ({ children }) => {
     try {
       // If userDataOrEmail is an object, it's user data from OTP verification
       if (typeof userDataOrEmail === "object") {
-        setUser(userDataOrEmail);
+        const userData = { ...userDataOrEmail };
+        
+        if (userData.token) {
+          // Store token FIRST in both localStorage and sessionStorage
+          localStorage.setItem("auth_token", userData.token);
+          sessionStorage.setItem("auth_token", userData.token);
+          setAuthToken(userData.token);
+          console.log("AuthContext: Token stored from OTP verification");
+        }
+
+        // Set user state
+        setUser(userData);
 
         // Store user data in both localStorage and sessionStorage
-        const userDataString = JSON.stringify(userDataOrEmail);
+        const userDataString = JSON.stringify(userData);
         localStorage.setItem("user", userDataString);
         sessionStorage.setItem("user", userDataString);
 
-        if (userDataOrEmail.token) {
-          // Store token in both localStorage and sessionStorage
-          localStorage.setItem("auth_token", userDataOrEmail.token);
-          sessionStorage.setItem("auth_token", userDataOrEmail.token);
-          setAuthToken(userDataOrEmail.token);
-        }
+        console.log("AuthContext: OTP verification complete. User and token stored:", {
+          hasUser: !!userData,
+          hasToken: !!userData.token,
+          userId: userData.id,
+          userEmail: userData.email
+        });
+
         return { success: true };
       }
 
@@ -265,14 +277,7 @@ export const AuthProvider = ({ children }) => {
           token: normalizedToken,
         };
 
-        setUser(userData);
-
-        // Store user data in both localStorage and sessionStorage
-        const userDataString = JSON.stringify(userData);
-        localStorage.setItem("user", userDataString);
-        sessionStorage.setItem("user", userDataString);
-
-        // Store auth token if provided - check multiple possible token fields
+        // Store auth token FIRST before setting user - check multiple possible token fields
         const token =
           normalizedToken ||
           userData.token ||
@@ -297,6 +302,9 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem("auth_token", token);
           sessionStorage.setItem("auth_token", token);
           setAuthToken(token);
+          
+          // Update userData to include token
+          userData.token = token;
         } else {
           console.log(
             "AuthContext: No token in login response, but login successful"
@@ -309,6 +317,21 @@ export const AuthProvider = ({ children }) => {
           );
           // Don't clear auth token - let API functions use client token as fallback
         }
+
+        // Set user AFTER token is stored and added to userData
+        setUser(userData);
+
+        // Store user data in both localStorage and sessionStorage
+        const userDataString = JSON.stringify(userData);
+        localStorage.setItem("user", userDataString);
+        sessionStorage.setItem("user", userDataString);
+
+        console.log("AuthContext: Login complete. User and token stored:", {
+          hasUser: !!userData,
+          hasToken: !!token,
+          userId: userData.id,
+          userEmail: userData.email
+        });
 
         // After storing token, if the user id is missing, try to hydrate from /account
         try {

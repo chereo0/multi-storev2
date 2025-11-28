@@ -26,12 +26,26 @@ const Navbar = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  
   // Consider authenticated only when a real user (not guest) and a token exist
   const isAuthenticated = !!(
     user &&
     !user.isGuest &&
     (user.token || localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token"))
   );
+
+  // Debug logging for auth state
+  useEffect(() => {
+    console.log("Navbar: Auth state changed:", {
+      hasUser: !!user,
+      isGuest: user?.isGuest,
+      hasUserToken: !!user?.token,
+      hasLocalStorageToken: !!localStorage.getItem("auth_token"),
+      hasSessionStorageToken: !!sessionStorage.getItem("auth_token"),
+      isAuthenticated,
+      userName: user?.name || user?.email
+    });
+  }, [user, isAuthenticated]);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
