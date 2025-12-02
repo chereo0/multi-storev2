@@ -208,6 +208,15 @@ function normalizeProduct(raw) {
     null;
   const numeric = typeof rawPrice === "string" ? parseFloat(String(rawPrice).replace(/[^0-9.]/g, "")) : rawPrice;
 
+  // Special/discount price handling
+  const rawSpecialPrice = raw.special || raw.special_price || raw.discount_price || raw.sale_price || null;
+  const specialNumeric = typeof rawSpecialPrice === "string" ? parseFloat(String(rawSpecialPrice).replace(/[^0-9.]/g, "")) : rawSpecialPrice;
+  const hasDiscount = specialNumeric && Number.isFinite(specialNumeric) && specialNumeric < (numeric || Infinity);
+  
+  // Original price fields
+  const rawOriginalPrice = raw.original_price || raw.regular_price || (hasDiscount ? rawPrice : null);
+  const originalNumeric = typeof rawOriginalPrice === "string" ? parseFloat(String(rawOriginalPrice).replace(/[^0-9.]/g, "")) : rawOriginalPrice;
+
   // Stock handling: prefer explicit status and quantity
   const stockStatus = (raw.stock_status || raw.status_text || "").toString().toLowerCase();
   const stockStatusId = typeof raw.stock_status_id !== "undefined" ? Number(raw.stock_status_id) : null;
@@ -235,6 +244,11 @@ function normalizeProduct(raw) {
       (typeof raw.price_formated !== "undefined" && raw.price_formated) ||
       rawPrice ||
       (Number.isFinite(numeric) ? `$${numeric}` : null),
+    specialPrice: hasDiscount && Number.isFinite(specialNumeric) ? specialNumeric : null,
+    specialPriceDisplay: hasDiscount ? (raw.special_formated || raw.special || (Number.isFinite(specialNumeric) ? `$${specialNumeric}` : null)) : null,
+    originalPrice: hasDiscount && Number.isFinite(originalNumeric) ? originalNumeric : null,
+    originalPriceDisplay: hasDiscount ? (raw.original_price_formated || rawOriginalPrice || (Number.isFinite(originalNumeric) ? `$${originalNumeric}` : null)) : null,
+    hasDiscount: hasDiscount,
     rating: raw.rating ?? raw.average_rating ?? null,
     reviewCount: raw.reviewCount ?? raw.total_reviews ?? 0,
     inStock: computeInStock(),
@@ -1318,6 +1332,24 @@ export const removeFromWishlist = async (productId) => {
     }
 
     return { success: 0, error: err?.message || String(err) };
+  }
+};
+
+// Get latest products
+export const getLatest = async () => {
+  try {
+    const res = await api.get('/latest');
+    console.log("getLatest response:", res);
+    
+    if (res && res.data) {
+      const body = res.data;
+      const data = body.data || body.products || body;
+      return { success: true, data: Array.isArray(data) ? data : [] };
+    }
+    return { success: false, data: [] };
+  } catch (err) {
+    console.warn("getLatest failed:", err?.message || err);
+    return { success: false, data: [], error: err?.message || String(err) };
   }
 };
 

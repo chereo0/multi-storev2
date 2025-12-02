@@ -94,19 +94,28 @@ const StoresPage = () => {
           if (response && response.success && response.data) {
             let fetched = [];
             if (Array.isArray(response.data)) {
+              // Only look for stores, not products
               const widget = response.data.find(
-                (it) =>
-                  Array.isArray(it.stores) ||
-                  Array.isArray(it.products) ||
-                  Array.isArray(it.items)
+                (it) => Array.isArray(it.stores)
               );
-              fetched =
-                (widget && (widget.stores || widget.products || widget.items)) ||
-                [];
+              fetched = (widget && widget.stores) || [];
             } else if (Array.isArray(response.data.stores)) {
               fetched = response.data.stores;
             }
-            setStores(fetched || []);
+            
+            // Filter to ensure only stores (not products) are included
+            // Stores have store_id/storeId, products have product_id
+            const onlyStores = fetched.filter(item => {
+              const hasStoreId = item.store_id || item.storeId || item.id;
+              const hasProductId = item.product_id;
+              const isStore = hasStoreId && !hasProductId;
+              if (!isStore && hasProductId) {
+                console.log("Filtering out product:", item.name);
+              }
+              return isStore;
+            });
+            
+            setStores(onlyStores || []);
           }
         } else if (selectedCategory && selectedCategory !== "all") {
           // Fetch stores for specific category
@@ -116,13 +125,24 @@ const StoresPage = () => {
           
           if (res) {
             let data = res.data || [];
-            console.log("Stores received from API:", data.length, "stores");
+            console.log("Items received from API:", data.length);
             if (res.error) {
               console.error("API returned error:", res.error);
             }
             
+            // Filter out products - only keep stores
+            const onlyStores = data.filter(item => {
+              const hasStoreId = item.store_id || item.storeId || item.id;
+              const hasProductId = item.product_id;
+              const isStore = hasStoreId && !hasProductId;
+              if (!isStore && hasProductId) {
+                console.log("Filtering out product:", item.name);
+              }
+              return isStore;
+            });
+            
             // Additional client-side filter to ensure only category-matched stores
-            const filtered = data.filter(store => {
+            const filtered = onlyStores.filter(store => {
               const storeCategoryId = String(store.category?.id || store.category_id || store.category || store.raw?.category_id || '');
               const requestedCategoryId = String(selectedCategory);
               const matches = storeCategoryId === requestedCategoryId;
@@ -132,7 +152,7 @@ const StoresPage = () => {
               return matches;
             });
             
-            console.log("Stores after client-side filtering:", filtered.length, "stores");
+            console.log("Stores after filtering:", filtered.length, "stores");
             setStores(filtered);
           } else {
             console.warn("No response from API");

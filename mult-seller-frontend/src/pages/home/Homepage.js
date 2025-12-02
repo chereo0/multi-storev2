@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 // import { useCart } from "../../context/CartContext";
 import { useTheme } from "../../context/ThemeContext";
 // import ThreeScene from "../../components/ThreeScene";
-import { getStores, getHomePageBuilder, getWishlist } from "../../api/services";
+import { getStores, getHomePageBuilder, getWishlist, getLatest } from "../../api/services";
 
 // Helper function to get icon for category
 const getCategoryIcon = (categoryName) => {
@@ -30,6 +30,7 @@ const Homepage = () => {
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
+  const [newArrivalProducts, setNewArrivalProducts] = useState([]);
   const [wishlistProducts, setWishlistProducts] = useState([]);
   const [slideImages, setSlideImages] = useState([]);
   const [slidesReady, setSlidesReady] = useState(false);
@@ -72,11 +73,11 @@ const Homepage = () => {
               console.log("Banners extracted:", bannerData.banners);
             }
 
-            // Extract new arrivals
+            // Extract new arrivals (carousel)
             const newArrivalData = response.data.find(
               (item) => item.type === "new_arrival_carousel"
             );
-            console.log("New arrival data found:", newArrivalData);
+            console.log("New arrival (carousel) data found:", newArrivalData);
             if (newArrivalData) {
               const products =
                 newArrivalData.products ||
@@ -84,15 +85,22 @@ const Homepage = () => {
                 newArrivalData.items ||
                 [];
               setNewArrivals(products);
-              console.log("New arrivals extracted:", products);
-              // Log the full first item to see its structure
-              if (products.length > 0) {
-                console.log(
-                  "FULL first item object:",
-                  JSON.stringify(products[0], null, 2)
-                );
-                console.log("First item keys:", Object.keys(products[0]));
-              }
+              console.log("New arrivals (carousel) extracted:", products);
+            }
+
+            // Extract new_arrival_product widget (requested)
+            const newArrivalProductWidget = response.data.find(
+              (item) => item.type === "new_arrival_product"
+            );
+            console.log("New arrival (product) widget found:", newArrivalProductWidget);
+            if (newArrivalProductWidget) {
+              const products =
+                newArrivalProductWidget.products ||
+                newArrivalProductWidget.items ||
+                newArrivalProductWidget.data ||
+                [];
+              setNewArrivalProducts(products);
+              console.log("New arrival products extracted:", products);
             }
           }
         }
@@ -798,277 +806,94 @@ const Homepage = () => {
         </section>
       )}
 
-      {/* Featured Stores Section */}
-      <section
-        className={`py-20 transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className={`transform transition-all duration-1000 delay-700 ${
-              isVisible
-                ? "translate-y-0 opacity-100"
-                : "translate-y-10 opacity-0"
-            }`}
-          >
-            <div className="text-center mb-16">
-              <h2
-                className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].text
-                }`}
-                style={{
-                  textShadow: isDarkMode
-                    ? "0 0 20px rgba(0, 229, 255, 0.5)"
-                    : "none",
-                }}
-              >
-                FEATURED STORES
-              </h2>
-              <p
-                className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].textSecondary
-                }`}
-              >
-                Discover trusted merchants from across the multiverse.
-              </p>
-            </div>
+      {/* New Arrival Products Section (from home_page_builder 'new_arrival_product') */}
+      {newArrivalProducts && newArrivalProducts.length > 0 && (
+        <section
+          className={`py-20 transition-colors duration-300 ${
+            isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div
+              className={`transform transition-all duration-1000 delay-700 ${
+                isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+              }`}
+            >
+              <div className="text-center mb-16">
+                <h2
+                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
+                    colors[isDarkMode ? "dark" : "light"].text
+                  }`}
+                >
+                  NEW ARRIVAL PRODUCTS
+                </h2>
+                <p
+                  className={`text-xl max-w-2xl mx-auto mb-6 transition-colors duration-300 ${
+                    colors[isDarkMode ? "dark" : "light"].textSecondary
+                  }`}
+                >
+                  Browse the latest products freshly added to the marketplace.
+                </p>
+                <Link
+                  to="/latest"
+                  className="inline-block px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105"
+                  style={{
+                    background: isDarkMode ? 'linear-gradient(90deg, #00E5FF, #0891b2)' : 'linear-gradient(90deg, #0891b2, #06b6d4)',
+                    color: 'white',
+                    boxShadow: isDarkMode ? '0 0 20px rgba(0, 229, 255, 0.4)' : '0 4px 12px rgba(8, 145, 178, 0.3)'
+                  }}
+                >
+                  VIEW LATEST
+                </Link>
+              </div>
 
-            {storesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[...Array(3)].map((_, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {newArrivalProducts.slice(0, 12).map((item, idx) => (
                   <div
-                    key={index}
-                    className={`relative p-6 rounded-xl transition-colors duration-300 ${
-                      isDarkMode
-                        ? "bg-white/2 backdrop-blur-md border border-gray-700"
-                        : "bg-white/80 backdrop-blur-md border border-gray-200"
+                    key={item.id || item.product_id || item.store_id || idx}
+                    className={`transform transition-all duration-500 delay-${idx * 80} ${
+                      isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
                     }`}
-                    style={{
-                      boxShadow: isDarkMode
-                        ? "0 0 25px rgba(0, 229, 255, 10)"
-                        : "0 0 25px rgba(0, 0, 0, 0.1)",
-                    }}
                   >
-                    <div className="animate-pulse">
-                      <div className="w-16 h-16 bg-gray-600 rounded-xl mx-auto mb-4"></div>
-                      <div className="h-6 bg-gray-600 rounded mb-3"></div>
-                      <div className="h-4 bg-gray-600 rounded mb-4"></div>
-                      <div className="h-4 bg-gray-600 rounded w-2/3 mx-auto"></div>
-                    </div>
+                    <Link to={item.product_id ? `/product/${item.product_id}` : item.store_id ? `/store/${item.store_id}` : '#'}>
+                      <div
+                        className={`relative p-4 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${
+                          isDarkMode ? "bg-white/3 backdrop-blur-md" : "bg-white/80 backdrop-blur-md"
+                        }`}
+                        style={{ border: `1px solid #e5e7eb`, boxShadow: `0 4px 12px rgba(0,0,0,0.06)` }}
+                      >
+                        <div className="relative mb-4 overflow-hidden rounded-lg flex items-center justify-center p-4" style={{ height: 180, background: '#f7fafc' }}>
+                          {item.image || item.thumb || item.background_image || item.profile_image ? (
+                            <img
+                              src={item.image || item.thumb || item.background_image || item.profile_image}
+                              alt={item.name || item.title}
+                              className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                              onError={(e) => { e.currentTarget.src = '/no-image.png'; }}
+                            />
+                          ) : (
+                            <div className="text-6xl">📦</div>
+                          )}
+                        </div>
+
+                        <div className="text-center">
+                          <h3 className={`text-sm font-bold mb-2 line-clamp-2 ${colors[isDarkMode ? 'dark' : 'light'].text}`}>{item.name || item.title}</h3>
+                          {(item.store_name || item.store) && (
+                            <p className={`text-xs mb-2 ${colors[isDarkMode ? 'dark' : 'light'].textSecondary}`}>
+                              🏪 {item.store_name || item.store}
+                            </p>
+                          )}
+                          {item.price && <div className="text-lg font-semibold mb-2" style={{ color: isDarkMode ? '#00E5FF' : '#0891b2' }}>{item.price}</div>}
+                          <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105" style={{ background: isDarkMode ? 'linear-gradient(90deg,#00E5FF20,#00E5FF40)' : 'linear-gradient(90deg,#EEF2FF,#E9F5FF)', border: '1px solid #e5e7eb' }}>PRE-ORDER</button>
+                        </div>
+                      </div>
+                    </Link>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {stores.map((store, index) => {
-                  const isPhoenix =
-                    store?.id === "phoenix" ||
-                    store?.slug === "phoenix" ||
-                    /phoenix/i.test(store?.name || "");
-                  const storeHref = isPhoenix
-                    ? "/store/phoenix"
-                    : `/store/${store.id}`;
-                  return (
-                    <div
-                      key={store.id}
-                      className={`transform transition-all duration-500 delay-${
-                        index * 200
-                      } ${
-                        isVisible
-                          ? "translate-y-0 opacity-100"
-                          : "translate-y-10 opacity-0"
-                      }`}
-                    >
-                      <Link to={storeHref}>
-                        <div
-                          className={`relative p-6 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${
-                            isDarkMode
-                              ? "bg-white/3 backdrop-blur-md"
-                              : "bg-white/80 backdrop-blur-md"
-                          }`}
-                          style={{
-                            border: `1px solid ${
-                              store.isVerified ? "#00E5FF" : "#FF00FF"
-                            }`,
-                            boxShadow: `0 0 30px ${
-                              store.isVerified ? "#00E5FF" : "#FF00FF"
-                            }30, inset 0 0 30px ${
-                              store.isVerified ? "#00E5FF" : "#FF00FF"
-                            }05`,
-                          }}
-                        >
-                          {/* Store Banner Background */}
-                          <div
-                            className="absolute inset-0 rounded-xl opacity-10 group-hover:opacity-20 transition-opacity duration-300"
-                            style={{
-                              backgroundImage: `url(${store.banner})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          />
-
-                          {/* Verification Badge */}
-                          {store.isVerified && (
-                            <div
-                              className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold"
-                              style={{
-                                background:
-                                  "linear-gradient(90deg, #00E5FF, #00E5FF80)",
-                                color: "white",
-                                boxShadow: "0 0 15px #00E5FF30",
-                              }}
-                            >
-                              ✓ VERIFIED
-                            </div>
-                          )}
-
-                          <div className="text-center relative z-10">
-                            {/* Store Logo */}
-                            <div
-                              className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:rotate-12"
-                              style={{
-                                background: `linear-gradient(135deg, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }20, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }40)`,
-                                border: `2px solid ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }`,
-                                boxShadow: `0 0 25px ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }50`,
-                              }}
-                            >
-                              <img
-                                src={
-                                  store.logo || store.raw?.profile_image || store.raw?.logo || store.profile_image || '/no-image.png'
-                                }
-                                alt={`${store.name} logo`}
-                                onError={(e) => {
-                                  try {
-                                    e.currentTarget.src = '/no-image.png';
-                                  } catch (err) {}
-                                }}
-                                className="w-12 h-12 rounded-lg object-cover"
-                              />
-                            </div>
-
-                            {/* Store Name */}
-                            <h3
-                              className={`text-xl font-bold mb-3 transition-colors duration-300 ${
-                                colors[isDarkMode ? "dark" : "light"].text
-                              }`}
-                              style={{
-                                textShadow: isDarkMode
-                                  ? `0 0 15px ${
-                                      store.isVerified ? "#00E5FF" : "#FF00FF"
-                                    }80`
-                                  : "none",
-                              }}
-                            >
-                              {store.name}
-                            </h3>
-
-                            {/* Store Description */}
-                            <p
-                              className={`mb-4 text-sm line-clamp-2 transition-colors duration-300 ${
-                                colors[isDarkMode ? "dark" : "light"]
-                                  .textSecondary
-                              }`}
-                            >
-                              {store.description}
-                            </p>
-
-                            {/* Store Category */}
-                            <div
-                              className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4"
-                              style={{
-                                background: `linear-gradient(90deg, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }20, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }40)`,
-                                border: `1px solid ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }`,
-                                color: store.isVerified ? "#00E5FF" : "#FF00FF",
-                              }}
-                            >
-                              {store.category}
-                            </div>
-
-                            {/* Rating */}
-                            <div className="flex items-center justify-center space-x-2 mb-4">
-                              <div className="flex items-center space-x-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <svg
-                                    key={i}
-                                    className={`w-4 h-4 ${
-                                      i < Math.floor(store.rating)
-                                        ? "text-yellow-400"
-                                        : "text-gray-600"
-                                    }`}
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                  </svg>
-                                ))}
-                              </div>
-                              <span
-                                className="text-sm font-semibold"
-                                style={{
-                                  color: store.isVerified
-                                    ? "#00E5FF"
-                                    : "#FF00FF",
-                                }}
-                              >
-                                {store.rating}
-                              </span>
-                              <span
-                                className={`text-sm transition-colors duration-300 ${
-                                  colors[isDarkMode ? "dark" : "light"]
-                                    .textSecondary
-                                }`}
-                              >
-                                ({store.reviewCount})
-                              </span>
-                            </div>
-
-                            {/* Visit Store Button */}
-                            <Link
-                              to={storeHref}
-                              className="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105"
-                              style={{
-                                background: `linear-gradient(90deg, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }20, ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }40)`,
-                                border: `1px solid ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }`,
-                                color: "white",
-                                boxShadow: `0 0 15px ${
-                                  store.isVerified ? "#00E5FF" : "#FF00FF"
-                                }20`,
-                              }}
-                            >
-                              VISIT STORE
-                            </Link>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       <section
         className={`py-20 transition-colors duration-300 ${
           isDarkMode ? "bg-gray-900" : "bg-gray-50"

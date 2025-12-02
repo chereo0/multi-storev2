@@ -252,28 +252,6 @@ const ProductPage = () => {
           : "linear-gradient(180deg, #eae0d5, #c6ac8f)",
       }}
     >
-      <header className={`shadow-sm backdrop-blur-md transition-colors duration-300 ${
-        isDarkMode ? "bg-gray-900/70 border-b border-cyan-400/20" : "bg-white/80 border-b border-gray-200"
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <Link to="/home" className={`text-2xl font-bold transition-colors duration-300 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}>Multi-Seller</Link>
-            <div className="flex gap-3">
-              <Link to={`/store/${product.storeId || 1}`} className={`transition-colors duration-300 ${
-                isDarkMode ? "text-cyan-400 hover:text-cyan-300" : "text-indigo-600 hover:text-indigo-700"
-              }`}>Back to Store</Link>
-              <Link to="/cart" className={`px-4 py-2 rounded-md transition-colors duration-300 ${
-                isDarkMode 
-                  ? "bg-gradient-to-r from-cyan-500 to-purple-600 text-white hover:from-cyan-400 hover:to-purple-500" 
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}>Cart</Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className={`rounded-lg shadow-lg overflow-hidden flex flex-col backdrop-blur-md transition-colors duration-300 ${
@@ -326,9 +304,27 @@ const ProductPage = () => {
               }`}>{product.rating} ({product.reviewCount})</span>
             </div>
             <div className="flex items-center gap-4 mb-4">
-              <div className={`text-3xl font-bold transition-colors duration-300 ${
-                isDarkMode ? "text-cyan-400" : "text-gray-900"
-              }`}>{product.priceDisplay || (product.price ? `$${product.price}` : '—')}</div>
+              <div className="flex items-center gap-3">
+                {product.hasDiscount && product.originalPriceDisplay ? (
+                  <>
+                    <div className={`text-3xl font-bold transition-colors duration-300 ${
+                      isDarkMode ? "text-cyan-400" : "text-cyan-600"
+                    }`}>
+                      {product.specialPriceDisplay || (product.specialPrice ? `$${product.specialPrice}` : product.priceDisplay)}
+                    </div>
+                    <div className={`text-xl font-medium line-through transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-500" : "text-gray-400"
+                    }`}>
+                      {product.originalPriceDisplay || (product.originalPrice ? `$${product.originalPrice}` : product.priceDisplay)}
+                    </div>
+                    <span className="bg-red-500 text-white text-sm font-bold px-2 py-1 rounded">SALE</span>
+                  </>
+                ) : (
+                  <div className={`text-3xl font-bold transition-colors duration-300 ${
+                    isDarkMode ? "text-cyan-400" : "text-gray-900"
+                  }`}>{product.priceDisplay || (product.price ? `$${product.price}` : '—')}</div>
+                )}
+              </div>
               {typeof product.quantity === 'number' && (
                 <span className={`text-sm px-2 py-1 rounded transition-colors duration-300 ${
                   isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700"

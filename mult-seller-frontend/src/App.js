@@ -25,6 +25,7 @@ import StorePage from "./pages/store/StorePage";
 import PhoenixEmporium from "./pages/store/PhoenixEmporium";
 import CartPage from "./pages/cart/CartPage";
 import ProductPage from "./pages/product/ProductPage";
+import LatestProductsPage from "./pages/product/LatestProductsPage";
 import AboutPage from "./pages/AboutPage";
 import StoresPage from "./pages/StoresPage";
 import ContactPage from "./pages/ContactPage";
@@ -58,6 +59,7 @@ const AnimatedRoutes = () => {
         <Route path="/store/:storeId" element={<StorePage />} />
         <Route path="/store/phoenix" element={<PhoenixEmporium />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/latest" element={<LatestProductsPage />} />
         <Route path="/product/:productId" element={<ProductPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
