@@ -400,9 +400,20 @@ const CartPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className={`font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item.product.name}</div>
                         <div className="text-sm flex items-center gap-2 mt-1">
-                          <span className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>
-                            ${item.product.price?.toFixed ? item.product.price.toFixed(2) : item.product.price}
-                          </span>
+                          {item.product.hasDiscount && item.product.specialPrice ? (
+                            <>
+                              <span className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'} font-semibold`}>
+                                ${typeof item.product.specialPrice === 'number' ? item.product.specialPrice.toFixed(2) : item.product.specialPrice}
+                              </span>
+                              <span className={`line-through text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                ${item.product.originalPrice?.toFixed ? item.product.originalPrice.toFixed(2) : item.product.price?.toFixed ? item.product.price.toFixed(2) : item.product.price}
+                              </span>
+                            </>
+                          ) : (
+                            <span className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>
+                              ${item.product.price?.toFixed ? item.product.price.toFixed(2) : item.product.price}
+                            </span>
+                          )}
                           <div className="flex items-center gap-2 ml-auto">
                             <button
                               onClick={() => updateQuantity(item.product.id, item.storeId, item.quantity - 1, item.option)}
@@ -595,12 +606,17 @@ const CartPage = () => {
             }`}>
               <h2 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>ORDER SUMMARY</h2>
               <div className="space-y-4 mb-6">
-                {cartItems.map((item) => (
-                  <div key={`${item.product.id}-${item.storeId}`} className="flex items-center justify-between text-sm">
-                    <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.product.name} × {item.quantity}</span>
-                    <span className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>${(item.product.price * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
+                {cartItems.map((item) => {
+                  const effectivePrice = (item.product.hasDiscount && item.product.specialPrice) 
+                    ? (typeof item.product.specialPrice === 'number' ? item.product.specialPrice : parseFloat(item.product.specialPrice) || item.product.price)
+                    : item.product.price;
+                  return (
+                    <div key={`${item.product.id}-${item.storeId}`} className="flex items-center justify-between text-sm">
+                      <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.product.name} × {item.quantity}</span>
+                      <span className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>${(effectivePrice * item.quantity).toFixed(2)}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">

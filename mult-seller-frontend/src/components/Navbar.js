@@ -122,34 +122,29 @@ const Navbar = () => {
       className={`fixed top-0 left-0 right-0 z-50 w-full backdrop-blur supports-[backdrop-filter]:backdrop-saturate-150 transition-all duration-300 ${
         isDarkMode
           ? isScrolled
-            ? "bg-gray-900/90 border-b border-cyan-400/20 shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
-            : "bg-gray-900/70 border-b border-cyan-400/20 shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
+            ? "bg-gradient-to-r from-gray-900/90 via-purple-900/90 to-blue-900/90 border-b border-purple-400/20 shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+            : "bg-gradient-to-r from-gray-900/70 via-purple-900/70 to-blue-900/70 border-b border-purple-400/20 shadow-[0_2px_12px_rgba(0,0,0,0.25)]"
           : isScrolled
-          ? "bg-white/95 supports-[backdrop-filter]:bg-white/80 border-b border-gray-200 shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
-          : "bg-white/80 supports-[backdrop-filter]:bg-white/70 border-b border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+          ? "bg-gradient-to-r from-white/95 via-blue-50/95 to-purple-50/95 supports-[backdrop-filter]:bg-white/80 border-b border-blue-200 shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
+          : "bg-gradient-to-r from-white/80 via-blue-50/80 to-purple-50/80 supports-[backdrop-filter]:bg-white/70 border-b border-blue-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
       }`}
       role="navigation"
       aria-label="Primary"
     >
       {/* subtle gradient divider at the bottom edge */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/home" className="flex items-center space-x-3">
-            <img
-              src={`${process.env.PUBLIC_URL}/logo-multi-store.png`}
-              alt="multi-store"
-              className="h-8 w-auto"
-              onError={(e) => { e.currentTarget.style.display='none'; }}
-            />
-            <span
-              className={`font-bold text-xl transition-colors duration-300 ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
-              multi-store
-            </span>
+          <Link to="/home" className="flex items-center space-x-2 group">
+            <div className="flex items-center">
+              <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent animate-gradient">
+                Multi
+              </span>
+              <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent animate-gradient ml-1">
+                Store
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}

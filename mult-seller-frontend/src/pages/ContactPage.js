@@ -99,13 +99,13 @@ const ContactPage = () => {
                 {
                   icon: '📧',
                   title: 'Email',
-                  content: 'support@quantum.com',
+                  content: 'multistore@gmail.com',
                   description: 'Send us an email and we\'ll respond within 24 hours'
                 },
                 {
                   icon: '📞',
                   title: 'Phone',
-                  content: '+1 (555) 123-4567',
+                  content: '+961 81 235 302',
                   description: 'Call us during business hours (9 AM - 6 PM EST)'
                 },
                 {
@@ -117,8 +117,8 @@ const ContactPage = () => {
                 {
                   icon: '🌍',
                   title: 'Address',
-                  content: 'Quantum Headquarters',
-                  description: '123 Multiverse Ave, Dimension X-7, Universe 42'
+                  content: 'MultiStore Headquarters',
+                  description: 'Tripoli, Lebanon'
                 }
               ].map((contact, index) => (
                 <div key={index} className="flex items-start space-x-4">

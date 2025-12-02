@@ -429,7 +429,11 @@ export const CartProvider = ({ children }) => {
 
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
-      return total + item.product.price * item.quantity;
+      // Use discounted price if available, otherwise use regular price
+      const effectivePrice = (item.product.hasDiscount && item.product.specialPrice) 
+        ? (typeof item.product.specialPrice === 'number' ? item.product.specialPrice : parseFloat(item.product.specialPrice) || item.product.price)
+        : item.product.price;
+      return total + effectivePrice * item.quantity;
     }, 0);
   };
 

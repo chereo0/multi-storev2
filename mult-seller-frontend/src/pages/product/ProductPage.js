@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { getProduct, getProductReviews } from '../../api/services';
+import { getProduct } from '../../api/services';
 import { post as apiPost } from '../../api/index';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,9 +20,8 @@ const ProductPage = () => {
   const { productId } = useParams();
   const location = useLocation();
   const [product, setProduct] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('reviews'); // reviews first by default
+  const [activeTab, setActiveTab] = useState('description'); // description first by default
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [quantity, setQuantity] = useState(1);
@@ -33,10 +32,7 @@ const ProductPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, r] = await Promise.all([
-          getProduct(productId),
-          getProductReviews(productId)
-        ]);
+        const p = await getProduct(productId);
         if (p.success) {
           setProduct(p.data);
           // Initialize gallery selected image
@@ -46,7 +42,6 @@ const ProductPage = () => {
             setSelectedImage(p.data.image);
           }
         }
-        if (r.success) setReviews(r.data);
       } catch (e) {
         console.error(e);
       } finally {
@@ -566,17 +561,6 @@ const ProductPage = () => {
             isDarkMode ? "border-gray-700" : "border-gray-200"
           }`}>
             <nav className="-mb-px flex space-x-8">
-              <button onClick={() => setActiveTab('reviews')} className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
-                activeTab === 'reviews' 
-                  ? isDarkMode
-                    ? 'border-cyan-400 text-cyan-400'
-                    : 'border-indigo-500 text-indigo-600'
-                  : isDarkMode
-                    ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}>
-                Reviews ({reviews.length})
-              </button>
               <button onClick={() => setActiveTab('description')} className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
                 activeTab === 'description'
                   ? isDarkMode
@@ -604,47 +588,6 @@ const ProductPage = () => {
             </nav>
           </div>
 
-          {activeTab === 'reviews' && (
-            <div className="py-6 space-y-6">
-              {reviews.length === 0 && (
-                <div className={`transition-colors duration-300 ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}>No reviews yet.</div>
-              )}
-              {reviews.map(r => (
-                <div key={r.id} className={`p-6 rounded-lg shadow-lg backdrop-blur-md transition-colors duration-300 ${
-                  isDarkMode
-                    ? "bg-gray-800/50 border border-cyan-400/30"
-                    : "bg-white/90 border border-gray-200"
-                }`}>
-                  <div className="flex items-start">
-                    <img src={r.userAvatar} alt={r.userName} className="w-10 h-10 rounded-full mr-4" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className={`font-semibold transition-colors duration-300 ${
-                          isDarkMode ? "text-white" : "text-gray-900"
-                        }`}>{r.userName}</h4>
-                        <span className={`text-xs transition-colors duration-300 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}>{r.date}</span>
-                      </div>
-                      <div className="flex items-center my-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className={`w-4 h-4 ${i < r.rating ? 'text-yellow-400' : isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <p className={`transition-colors duration-300 ${
-                        isDarkMode ? "text-gray-300" : "text-gray-700"
-                      }`}>{r.comment}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {activeTab === 'description' && (
             <div className="py-6">
               <div className={`p-6 rounded-lg shadow-lg backdrop-blur-md transition-colors duration-300 ${
@@ -655,9 +598,15 @@ const ProductPage = () => {
                 <h3 className={`text-lg font-semibold mb-3 transition-colors duration-300 ${
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}>About this product</h3>
-                <div className={`prose max-w-none leading-relaxed transition-colors duration-300 ${
-                  isDarkMode ? "text-gray-300" : "text-gray-700"
-                }`} dangerouslySetInnerHTML={{ __html: sanitizeHTML(product.description) }} />
+                {product.description ? (
+                  <div className={`prose max-w-none leading-relaxed transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`} dangerouslySetInnerHTML={{ __html: sanitizeHTML(product.description) }} />
+                ) : (
+                  <div className={`transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>No description available.</div>
+                )}
               </div>
             </div>
           )}

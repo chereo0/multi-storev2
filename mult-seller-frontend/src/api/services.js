@@ -209,7 +209,14 @@ function normalizeProduct(raw) {
   const numeric = typeof rawPrice === "string" ? parseFloat(String(rawPrice).replace(/[^0-9.]/g, "")) : rawPrice;
 
   // Special/discount price handling
-  const rawSpecialPrice = raw.special || raw.special_price || raw.discount_price || raw.sale_price || null;
+  let rawSpecialPrice = raw.special || raw.special_price || raw.discount_price || raw.sale_price || null;
+  
+  // Check if discounts array exists and has items
+  if (!rawSpecialPrice && raw.discounts && Array.isArray(raw.discounts) && raw.discounts.length > 0) {
+    const firstDiscount = raw.discounts[0];
+    rawSpecialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
+  }
+  
   const specialNumeric = typeof rawSpecialPrice === "string" ? parseFloat(String(rawSpecialPrice).replace(/[^0-9.]/g, "")) : rawSpecialPrice;
   const hasDiscount = specialNumeric && Number.isFinite(specialNumeric) && specialNumeric < (numeric || Infinity);
   
@@ -747,41 +754,36 @@ export const searchSuggest = async (query, options = {}) => {
 };
 
 export const getStoreReviews = async (storeId) => {
-  // Some backends do not expose a GET /store/:id/reviews endpoint (405)
-  // and/or block cross-origin requests. To avoid noisy errors in the
-  // browser we first try to read reviews embedded in the store payload
-  // (GET /store/:id). If that does not contain reviews, we fallback to
-  // returning mock data without making another cross-origin request.
+  // Fetch reviews from the store endpoint (reviews are included in data.reviews)
   try {
     const storeRes = await api.get(`/store/${storeId}`);
     if (storeRes && storeRes.data) {
       const payload = storeRes.data;
       const storeData = payload.data || payload;
-      // Some APIs include reviews or items on the store object
-      if (Array.isArray(storeData.reviews) && storeData.reviews.length > 0) {
+      
+      // Reviews are in data.reviews array
+      if (Array.isArray(storeData.reviews)) {
         return { success: true, data: storeData.reviews };
       }
-      if (Array.isArray(storeData.items) && storeData.items.length > 0) {
-        // If the API uses `items` for reviews (uncommon) return them
-        return { success: true, data: storeData.items };
-      }
-      // If store payload includes rating metadata but not a list, return empty
+      
+      // If store payload includes rating metadata but no reviews array, return empty
       if (typeof storeData.total_reviews !== "undefined") {
         return { success: true, data: [] };
       }
+      
+      // Also check if reviews are at the top level
+      if (Array.isArray(payload.reviews)) {
+        return { success: true, data: payload.reviews };
+      }
     }
   } catch (err) {
-    // Ignore - we'll fallback to mock data below
     console.warn(
-      "getStoreReviews: could not read reviews from store payload:",
+      "getStoreReviews: could not read reviews from store endpoint:",
       err?.message || err
     );
   }
 
-  // Avoid calling /store/:id/reviews directly to prevent 405/CORS noise.
-  // Return mock reviews for a clean UX.
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  // Fallback: return empty list so the UI shows no reviews rather than mock data
+  // If all attempts fail, return empty array
   return { success: true, data: [] };
 };
 

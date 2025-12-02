@@ -94,13 +94,57 @@ const Homepage = () => {
             );
             console.log("New arrival (product) widget found:", newArrivalProductWidget);
             if (newArrivalProductWidget) {
-              const products =
+              const rawProducts =
                 newArrivalProductWidget.products ||
                 newArrivalProductWidget.items ||
                 newArrivalProductWidget.data ||
                 [];
-              setNewArrivalProducts(products);
-              console.log("New arrival products extracted:", products);
+              
+              // Normalize products to use profile_image instead of background_image and detect discounts
+              const normalizedProducts = rawProducts.map(product => {
+                // For stores, prioritize profile_image over background_image
+                let displayImage = product.image || product.thumb;
+                if (!displayImage && product.store_id) {
+                  // This is a store item, use profile_image
+                  displayImage = product.profile_image || product.logo;
+                }
+                // Only use background_image as last resort if nothing else exists
+                if (!displayImage) {
+                  displayImage = product.background_image;
+                }
+                
+                // Check for discount prices
+                let specialPrice = product.special || product.special_price || product.discount_price || product.sale_price;
+                
+                // Check if discounts array exists and has items
+                if (!specialPrice && product.discounts && Array.isArray(product.discounts) && product.discounts.length > 0) {
+                  // Get the first discount price
+                  const firstDiscount = product.discounts[0];
+                  specialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
+                }
+                
+                const rawPrice = product.price || product.price_text || product.price_display;
+                const specialNumeric = specialPrice && typeof specialPrice === "string" 
+                  ? parseFloat(specialPrice.replace(/[^0-9.]/g, ""))
+                  : (typeof specialPrice === "number" ? specialPrice : null);
+                const regularNumeric = rawPrice && typeof rawPrice === "string"
+                  ? parseFloat(rawPrice.replace(/[^0-9.]/g, ""))
+                  : (typeof rawPrice === "number" ? rawPrice : null);
+                const originalPrice = product.original_price || product.regular_price || regularNumeric;
+                const hasDiscount = Number.isFinite(specialNumeric) && Number.isFinite(originalPrice) && specialNumeric < originalPrice;
+                
+                return {
+                  ...product,
+                  displayImage: displayImage,
+                  hasDiscount: hasDiscount,
+                  specialPrice: hasDiscount ? specialNumeric : null,
+                  originalPrice: hasDiscount ? originalPrice : null,
+                  displayPrice: hasDiscount ? specialNumeric : (regularNumeric || null)
+                };
+              });
+              
+              setNewArrivalProducts(normalizedProducts);
+              console.log("New arrival products extracted and normalized:", normalizedProducts);
             }
           }
         }
@@ -547,11 +591,11 @@ const Homepage = () => {
                             }20, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"}40)`,
                           }}
                         >
-                          {item.background_image || item.profile_image ? (
+                          {item.profile_image || item.logo || item.background_image ? (
                             <div className="w-full h-full flex items-center justify-center">
                               <img
                                 src={
-                                  item.background_image || item.profile_image
+                                  item.profile_image || item.logo || item.background_image
                                 }
                                 alt={item.name || item.title}
                                 className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300"
@@ -863,9 +907,9 @@ const Homepage = () => {
                         style={{ border: `1px solid #e5e7eb`, boxShadow: `0 4px 12px rgba(0,0,0,0.06)` }}
                       >
                         <div className="relative mb-4 overflow-hidden rounded-lg flex items-center justify-center p-4" style={{ height: 180, background: '#f7fafc' }}>
-                          {item.image || item.thumb || item.background_image || item.profile_image ? (
+                          {item.displayImage ? (
                             <img
-                              src={item.image || item.thumb || item.background_image || item.profile_image}
+                              src={item.displayImage}
                               alt={item.name || item.title}
                               className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300"
                               onError={(e) => { e.currentTarget.src = '/no-image.png'; }}
@@ -882,7 +926,19 @@ const Homepage = () => {
                               🏪 {item.store_name || item.store}
                             </p>
                           )}
-                          {item.price && <div className="text-lg font-semibold mb-2" style={{ color: isDarkMode ? '#00E5FF' : '#0891b2' }}>{item.price}</div>}
+                          {item.hasDiscount ? (
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                              <span className="text-lg font-bold" style={{ color: isDarkMode ? '#00E5FF' : '#0891b2' }}>
+                                ${item.specialPrice.toFixed(2)}
+                              </span>
+                              <span className={`text-xs line-through ${colors[isDarkMode ? 'dark' : 'light'].textSecondary}`}>
+                                ${item.originalPrice.toFixed(2)}
+                              </span>
+                              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-semibold">SALE</span>
+                            </div>
+                          ) : (
+                            item.price && <div className="text-lg font-semibold mb-2" style={{ color: isDarkMode ? '#00E5FF' : '#0891b2' }}>${item.price}</div>
+                          )}
                           <button className="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105" style={{ background: isDarkMode ? 'linear-gradient(90deg,#00E5FF20,#00E5FF40)' : 'linear-gradient(90deg,#EEF2FF,#E9F5FF)', border: '1px solid #e5e7eb' }}>PRE-ORDER</button>
                         </div>
                       </div>
@@ -1196,21 +1252,19 @@ const Homepage = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {!user && (
-              <Link
-                to="/signup"
-                className="w-full sm:w-auto px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 hover:scale-105 transform"
-                style={{
-                  background: "linear-gradient(90deg, #00E5FF, #FF00FF)",
-                  color: "white",
-                  boxShadow:
-                    "0 0 30px rgba(0, 229, 255, 0.4), 0 0 60px rgba(255, 0, 255, 0.2)",
-                  textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
-                }}
-              >
-                JOIN THE MULTIVERSE
-              </Link>
-            )}
+            <Link
+              to="/contact"
+              className="w-full sm:w-auto px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 hover:scale-105 transform"
+              style={{
+                background: "linear-gradient(90deg, #00E5FF, #FF00FF)",
+                color: "white",
+                boxShadow:
+                  "0 0 30px rgba(0, 229, 255, 0.4), 0 0 60px rgba(255, 0, 255, 0.2)",
+                textShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+              }}
+            >
+              JOIN THE MULTISTORE
+            </Link>
             <Link
               to="/contact"
               className="w-full sm:w-auto px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 hover:scale-105 transform"
@@ -1346,26 +1400,40 @@ const Homepage = () => {
                 CUSTOMER SERVICE
               </h3>
               <ul className="space-y-3">
-                <li>
-                  <Link
-                    to="/login"
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
-                  >
-                    Login
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/signup"
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
-                  >
-                    Sign Up
-                  </Link>
-                </li>
+                {user && !user.isGuest ? (
+                  <li>
+                    <div
+                      className={`font-medium transition-colors duration-200 ${
+                        colors[isDarkMode ? "dark" : "light"].text
+                      }`}
+                    >
+                      Hello, {user.firstname || user.name?.split(' ')[0] || ''} {user.lastname || user.name?.split(' ')[1] || ''}
+                    </div>
+                  </li>
+                ) : (
+                  <>
+                    <li>
+                      <Link
+                        to="/login"
+                        className={`hover:text-[#5e503f] transition-colors duration-200 ${
+                          colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
+                      >
+                        Login
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/signup"
+                        className={`hover:text-[#5e503f] transition-colors duration-200 ${
+                          colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
+                      >
+                        Sign Up
+                      </Link>
+                    </li>
+                  </>
+                )}
                 <li>
                   <button
                     className={`hover:text-[#5e503f] transition-colors duration-200 ${

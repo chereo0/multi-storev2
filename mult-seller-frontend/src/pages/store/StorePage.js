@@ -71,7 +71,7 @@ const StorePage = () => {
             owner: sanitizeField(embedded.owner || embedded.store_owner) || "",
             description: sanitizeField(embedded.description) || "",
             logo: sanitizeField(embedded.profile_image || embedded.logo),
-            banner: sanitizeField(embedded.background_image || embedded.banner),
+            banner: sanitizeField(embedded.banner || embedded.background_image || embedded.bg_image || embedded.cover_image),
             email: sanitizeField(embedded.email),
             telephone: sanitizeField(embedded.telephone || embedded.phone),
             address: sanitizeField(embedded.address),
@@ -121,14 +121,35 @@ const StorePage = () => {
               typeof rawPrice === "string"
                 ? parseFloat(rawPrice.replace(/[^0-9.]/g, ""))
                 : rawPrice;
+            
+            // Check for discount/special prices
+            let specialPrice = prod.special || prod.special_price || prod.discount_price || prod.sale_price;
+            
+            // Check if discounts array exists and has items
+            if (!specialPrice && prod.discounts && Array.isArray(prod.discounts) && prod.discounts.length > 0) {
+              // Get the first discount price
+              const firstDiscount = prod.discounts[0];
+              specialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
+            }
+            
+            const specialNumeric = specialPrice && typeof specialPrice === "string" 
+              ? parseFloat(specialPrice.replace(/[^0-9.]/g, ""))
+              : (typeof specialPrice === "number" ? specialPrice : null);
+            
+            const originalPrice = prod.original_price || prod.regular_price || numeric;
+            const hasDiscount = Number.isFinite(specialNumeric) && Number.isFinite(originalPrice) && specialNumeric < originalPrice;
+            
             return {
               id: prod.product_id || prod.id,
               name: prod.name || prod.title || "Product",
               image:
                 prod.image || prod.image_url || prod.picture || "/no-image.png",
-              price: Number.isFinite(numeric) ? numeric : null,
-              priceDisplay:
-                rawPrice || (Number.isFinite(numeric) ? `$${numeric}` : null),
+              price: hasDiscount ? specialNumeric : (Number.isFinite(numeric) ? numeric : null),
+              priceDisplay: hasDiscount 
+                ? `$${specialNumeric.toFixed(2)}`
+                : (rawPrice || (Number.isFinite(numeric) ? `$${numeric}` : null)),
+              originalPrice: hasDiscount ? originalPrice : null,
+              hasDiscount: hasDiscount,
               description: prod.description || prod.short_description || "",
               inStock: prod.in_stock !== undefined ? !!prod.in_stock : true,
             };
@@ -144,7 +165,19 @@ const StorePage = () => {
           if (!Array.isArray(r)) {
             r = r?.data || r?.reviews || [];
           }
-          setReviews(Array.isArray(r) ? r : []);
+          
+          // Normalize review fields to match UI expectations
+          const normalizedReviews = (Array.isArray(r) ? r : []).map((review) => ({
+            id: review.id || review.review_id || review._id || `review-${Date.now()}-${Math.random()}`,
+            userId: review.userId || review.user_id || review.customer_id || review.author_id || null,
+            userName: review.userName || review.user_name || review.author || review.customer_name || review.name || 'Anonymous',
+            userAvatar: review.userAvatar || review.user_avatar || review.avatar || review.profile_image || 'https://via.placeholder.com/40',
+            rating: review.rating || review.stars || review.score || 5,
+            comment: review.comment || review.text || review.review || review.message || review.description || '',
+            date: review.date || review.created_at || review.date_added || new Date().toISOString().split('T')[0],
+          }));
+          
+          setReviews(normalizedReviews);
         } else {
           setReviews([]);
         }
@@ -388,17 +421,34 @@ const StorePage = () => {
       <section className="relative pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className="rounded-3xl p-6 md:p-10"
+            className="relative rounded-3xl overflow-hidden"
             style={{
-              background: isDarkMode
-                ? "rgba(10,14,39,0.55)"
-                : "rgba(255,255,255,0.8)",
               border: "1px solid rgba(0,229,255,0.3)",
-              boxShadow:
-                "0 0 40px rgba(0,229,255,0.15), inset 0 0 30px rgba(255,0,255,0.08)",
+              boxShadow: "0 0 40px rgba(0,229,255,0.15), inset 0 0 30px rgba(255,0,255,0.08)",
             }}
           >
-            <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Background Image Layer */}
+            {store.banner && (
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${store.banner})`,
+                  filter: 'brightness(0.6)',
+                }}
+              />
+            )}
+            
+            {/* Content Layer */}
+            <div 
+              className="relative p-6 md:p-10"
+              style={{
+                background: store.banner 
+                  ? (isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.75)') 
+                  : (isDarkMode ? 'rgba(10,14,39,0.55)' : 'rgba(255,255,255,0.8)'),
+                backdropFilter: store.banner ? 'blur(8px)' : 'none',
+              }}
+            >
+              <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
                 <img
                   src={
@@ -574,7 +624,7 @@ const StorePage = () => {
               <div className="flex-1" />
               <a
                 href="#products"
-                className="inline-block px-6 py-3 rounded-full font-semibold"
+                className="inline-block px-6 py-3 rounded-full font-semibold text-white"
                 style={{
                   background: "linear-gradient(90deg,#00E5FF,#FF00FF)",
                   boxShadow: "0 0 24px rgba(0,229,255,0.35)",
@@ -582,6 +632,7 @@ const StorePage = () => {
               >
                 EXPLORE
               </a>
+              </div>
             </div>
           </div>
         </div>
@@ -692,9 +743,9 @@ const StorePage = () => {
                       />
                     </div>
                     <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="mb-2">
                         <h3
-                          className={`font-semibold transition-colors duration-300 ${
+                          className={`font-semibold transition-colors duration-300 mb-2 ${
                             colors[isDarkMode ? "dark" : "light"].text
                           }`}
                         >
@@ -702,11 +753,29 @@ const StorePage = () => {
                             {product.name}
                           </RouterLink>
                         </h3>
-                        <span className="text-cyan-300 font-bold">
-                          {product.priceDisplay
-                            ? product.priceDisplay
-                            : `$${product.price}`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {product.hasDiscount ? (
+                            <>
+                              <span className="text-cyan-300 font-bold text-lg">
+                                ${Number(product.price).toFixed(2)}
+                              </span>
+                              <span className={`line-through text-sm ${
+                                colors[isDarkMode ? "dark" : "light"].textSecondary
+                              }`}>
+                                ${Number(product.originalPrice).toFixed(2)}
+                              </span>
+                              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                                SALE
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-cyan-300 font-bold">
+                              {product.price !== null && product.price !== undefined
+                                ? `$${Number(product.price).toFixed(2)}`
+                                : product.priceDisplay || 'N/A'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <p
                         className={`text-xs mb-3 line-clamp-2 transition-colors duration-300 ${
@@ -715,34 +784,36 @@ const StorePage = () => {
                       >
                         {product.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          disabled={!product.inStock}
-                          className={`px-3 py-2 rounded-lg text-sm ${
-                            product.inStock
-                              ? "bg-cyan-600 hover:bg-cyan-500"
-                              : "bg-gray-600 cursor-not-allowed"
-                          }`}
-                          aria-label={
-                            product.inStock
-                              ? `Add ${product.name} to cart`
-                              : `${product.name} out of stock`
-                          }
-                        >
-                          {product.inStock ? "Add to Cart" : "Out of Stock"}
-                        </button>
-                        <RouterLink
-                          to={`/product/${product.id}`}
-                          state={{ storeId }}
-                          className="px-3 py-2 rounded-lg text-sm border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 transition-colors duration-200"
-                          aria-label={`View ${product.name}`}
-                        >
-                          View Product
-                        </RouterLink>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={() => handleAddToCart(product)}
+                            disabled={!product.inStock}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm ${
+                              product.inStock
+                                ? "bg-cyan-600 hover:bg-cyan-500"
+                                : "bg-gray-600 cursor-not-allowed"
+                            }`}
+                            aria-label={
+                              product.inStock
+                                ? `Add ${product.name} to cart`
+                                : `${product.name} out of stock`
+                            }
+                          >
+                            {product.inStock ? "Add to Cart" : "Out of Stock"}
+                          </button>
+                          <RouterLink
+                            to={`/product/${product.id}`}
+                            state={{ storeId }}
+                            className="flex-1 ml-2 px-3 py-2 rounded-lg text-sm border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 transition-colors duration-200 text-center"
+                            aria-label={`View ${product.name}`}
+                          >
+                            View Product
+                          </RouterLink>
+                        </div>
                         {qty > 0 && (
                           <span
-                            className={`text-xs transition-colors duration-300 ${
+                            className={`text-xs text-center transition-colors duration-300 ${
                               colors[isDarkMode ? "dark" : "light"]
                                 .textSecondary
                             }`}
