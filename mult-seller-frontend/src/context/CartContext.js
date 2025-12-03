@@ -114,7 +114,8 @@ export const CartProvider = ({ children }) => {
                 product: normalizeProduct(prodObj) || { id: Number(prodObj.id), name: prodObj.name || '', price: prodObj.price || 0, image: prodObj.image },
                 storeId: it.store_id || it.storeId || 1,
                 quantity: isNaN(qty) ? 1 : qty,
-                option
+                option,
+                key: it.key || it.cart_id || null // Store the unique cart item key
               };
             });
 
@@ -332,7 +333,8 @@ export const CartProvider = ({ children }) => {
                 },
                 storeId: it.store_id || it.storeId || 1,
                 quantity: isNaN(qty) ? 1 : qty,
-                option
+                option,
+                key: it.key || it.cart_id || null
               };
             });
 
@@ -367,9 +369,16 @@ export const CartProvider = ({ children }) => {
       )
     );
 
-    // Call server to remove item (key is the product_id)
+    // Call server to remove item (key is the product_id or cart key)
     try {
-      const res = await removeFromCartAPI(productId);
+      // Find the item to get its key
+      const itemToRemove = cartItems.find(
+        (item) => item.product.id === productId && item.storeId === storeId
+      );
+      const key = itemToRemove?.key || productId; // Use key if available, else fallback to productId
+      console.log("removeFromCart: Removing item with key:", key);
+
+      const res = await removeFromCartAPI(key);
 
       if (res && res.success) {
         toast.success(res.message || "Item removed from cart");
@@ -419,8 +428,14 @@ export const CartProvider = ({ children }) => {
 
     // Call server to update quantity
     try {
+      // Find the item to get its key
+      const itemToUpdate = cartItems.find(
+        (item) => item.product.id === productId && item.storeId === storeId && sameOptionLocal(item.option, option)
+      );
+      const key = itemToUpdate?.key || productId;
+
       const payload = {
-        key: productId, // Server expects 'key' not 'product_id'
+        key: key, // Server expects 'key' (cart_id) not 'product_id'
         quantity,
       };
 
@@ -442,7 +457,7 @@ export const CartProvider = ({ children }) => {
             };
             const store = it.store_id || it.storeId || it.store;
             const qty = it.quantity || it.qty || it.count || 1;
-            return { product: normalizeProduct(productObj), storeId: store, quantity: qty };
+            return { product: normalizeProduct(productObj), storeId: store, quantity: qty, key: it.key || it.cart_id || null };
           });
           setCartItems(normalized);
         }
