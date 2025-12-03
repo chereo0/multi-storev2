@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { getProduct } from '../../api/services';
-import { post as apiPost } from '../../api/index';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -110,87 +109,10 @@ const ProductPage = () => {
       optionArrayVar = optionArray;
     }
     
-    // Call API to add to cart
-    const services = await import('../../api/services');
-    const addToCartAPI = services.addToCart;
-    const getCartAPI = services.getCart;
-    const emptyCartAPI = services.emptyCart;
-
-    let result = await addToCartAPI(cartData);
-
-    // If server reports cart conflict (different store items) but our local cart is empty,
-    // clear server cart and retry once automatically to avoid confusing users.
-    const msg = (result?.message || result?.error || '').toString().toLowerCase();
-    const conflictDetected = msg.includes('already contains') || msg.includes('clear the cart') || msg.includes('different store') || msg.includes('another store');
-    if (!result.success && conflictDetected) {
-      try {
-        // If the local cart is empty (user sees nothing), proactively clear server cart and retry.
-        const saved = localStorage.getItem('cart');
-        const localEmpty = !saved || saved === '[]' || saved === 'null';
-        if (localEmpty) {
-          console.log('Conflict detected and local cart empty — clearing server cart and retrying');
-          await emptyCartAPI();
-          result = await addToCartAPI(cartData);
-        } else {
-          // Fallback: inspect server cart; only clear if server reports empty
-          const current = await getCartAPI();
-          let serverItems = [];
-          if (current && current.data) {
-            if (Array.isArray(current.data)) serverItems = current.data;
-            else if (Array.isArray(current.data.items)) serverItems = current.data.items;
-            else if (Array.isArray(current.data.products)) serverItems = current.data.products;
-          }
-          const serverCount = Array.isArray(serverItems) ? serverItems.length : 0;
-          if (serverCount === 0) {
-            await emptyCartAPI();
-            result = await addToCartAPI(cartData);
-          }
-        }
-      } catch (e) {
-        console.warn('Retry after clearing server cart failed:', e);
-      }
-    }
-
-    // If the server responded with a validation error about missing color/option,
-    // retry with form-encoded payload in case the backend expects `option[<id>]=<value>`.
-    const validationMsg = (result?.message || result?.error || '').toString().toLowerCase();
-    const requiresOption = validationMsg.includes('color required') || validationMsg.includes('please select') || validationMsg.includes('required');
-    if (!result.success && requiresOption && hasOptions) {
-      try {
-        const params = new URLSearchParams();
-        params.append('product_id', String(product.id));
-        params.append('quantity', String(quantity));
-        // optionMap was built above when preparing cartData
-        if (typeof optionMap === 'object' && optionMap) {
-          for (const [k, v] of Object.entries(optionMap)) {
-            params.append(`option[${k}]`, String(v));
-          }
-        }
-        // Post as application/x-www-form-urlencoded
-        const retryRes = await apiPost('/cart', params.toString(), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-        // Axios returns response object with data
-        const body = retryRes?.data || {};
-        const ok = body.success === 1 || body.success === true || body.status === 'success';
-        if (ok) {
-          toast.success(`${product.name} added to cart`);
-          const fallbackStoreId = 1;
-          addToCart(product, product.storeId || fallbackStoreId, quantity);
-          return;
-        }
-      } catch (e) {
-        console.warn('Form-encoded addToCart retry failed:', e);
-      }
-    }
-
-    if (result.success) {
-      toast.success(`${product.name} added to cart`);
-      // Also update local cart context for UI
-      const fallbackStoreId = 1;
-      const localOption = Array.isArray(optionArrayVar) && optionArrayVar.length > 0 ? optionArrayVar : (optionMap && Object.keys(optionMap).length > 0 ? optionMap : undefined);
-      addToCart(product, product.storeId || fallbackStoreId, quantity, localOption);
-    } else {
-      toast.error(result.message || result.error || 'Failed to add to cart');
-    }
+    // Use CartContext's addToCart method which handles all API calls internally
+    // This prevents duplicate network requests
+    const fallbackStoreId = 1;
+    await addToCart(product, product.storeId || fallbackStoreId, quantity, optionArrayVar);
   };
 
   const handleThumbClick = useCallback((img) => {

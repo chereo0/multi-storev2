@@ -264,22 +264,77 @@ export const CartProvider = ({ children }) => {
         }
       }
 
-      // Optionally sync from server response if it returns a canonical cart
-      if (res.data && Array.isArray(res.data.items)) {
-        const normalized = res.data.items.map((it) => {
-          const productObj = it.product ||
-            it.product_detail || {
-              id: it.product_id || it.productId,
-              name: it.name || it.title,
-              price: it.price || it.unit_price,
-              image:
-                it.image || (it.product && it.product.image) || "/no-image.png",
-            };
-          const store = it.store_id || it.storeId || it.store;
-          const qty = it.quantity || it.qty || it.count || 1;
-          return { product: productObj, storeId: store, quantity: qty };
-        });
-        setCartItems(normalized);
+      // Sync full cart from server to ensure local state matches server state
+      console.log("addToCart: Successfully added to cart, now syncing full cart state");
+      try {
+        const fullCartRes = await apiGetCart();
+        console.log("addToCart: fetched full cart from server:", fullCartRes);
+        
+        if (fullCartRes && fullCartRes.data) {
+          // Normalize the server cart response (same logic as initial sync on mount)
+          const products = Array.isArray(fullCartRes.data.products)
+            ? fullCartRes.data.products
+            : Array.isArray(fullCartRes.data.items)
+            ? fullCartRes.data.items
+            : Array.isArray(fullCartRes.data)
+            ? fullCartRes.data
+            : [];
+
+          if (products.length > 0) {
+            const normalized = products.map((it) => {
+              const prodObj = it.product || it.product_detail || {
+                id: it.product_id || it.productId,
+                name: it.name || it.title || it.product_name || "",
+                price: typeof it.price_raw !== 'undefined' ? Number(it.price_raw) : (it.price ? Number(String(it.price).replace(/[^0-9.-]+/g, '')) : null),
+                image: it.thumb || it.image || (it.product && (it.product.image || it.product.thumb)) || '/no-image.png',
+                // Preserve discount information if available
+                hasDiscount: it.hasDiscount || (it.product && it.product.hasDiscount) || false,
+                specialPrice: it.specialPrice || (it.product && it.product.specialPrice) || null,
+                originalPrice: it.originalPrice || (it.product && it.product.originalPrice) || null,
+              };
+              const qty = Number(it.quantity || it.qty || it.count || 1);
+              
+              // Map option if present
+              let option = undefined;
+              if (Array.isArray(it.option) && it.option.length > 0) {
+                const first = it.option[0];
+                if (first && first.product_option_id && first.product_option_value_id) {
+                  option = {
+                    product_option_id: first.product_option_id,
+                    product_option_value_id: first.product_option_value_id,
+                  };
+                }
+              } else if (it.option && typeof it.option === 'object' && Object.keys(it.option).length > 0) {
+                const key = Object.keys(it.option)[0];
+                option = {
+                  product_option_id: parseInt(key),
+                  product_option_value_id: parseInt(it.option[key]),
+                };
+              }
+
+              return { 
+                product: { 
+                  id: Number(prodObj.id || prodObj.product_id || prodObj.productId), 
+                  name: prodObj.name || '', 
+                  price: prodObj.price || 0, 
+                  image: prodObj.image,
+                  hasDiscount: prodObj.hasDiscount,
+                  specialPrice: prodObj.specialPrice,
+                  originalPrice: prodObj.originalPrice,
+                }, 
+                storeId: it.store_id || it.storeId || 1, 
+                quantity: isNaN(qty) ? 1 : qty, 
+                option 
+              };
+            });
+
+            setCartItems(normalized);
+            console.log("addToCart: synced cart state with server, total items:", normalized.length);
+          }
+        }
+      } catch (syncErr) {
+        console.warn("addToCart: failed to sync full cart from server, keeping optimistic update:", syncErr);
+        // Keep the optimistic update if sync fails
       }
 
       // Return the successful response so callers can react
