@@ -4,7 +4,11 @@ import { useAuth } from "../../context/AuthContext";
 // import { useCart } from "../../context/CartContext";
 import { useTheme } from "../../context/ThemeContext";
 // import ThreeScene from "../../components/ThreeScene";
-import { getStores, getHomePageBuilder, getWishlist, getLatest } from "../../api/services";
+import { getStores, getHomePageBuilder, getWishlist } from "../../api/services";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 
 // Helper function to get icon for category
 const getCategoryIcon = (categoryName) => {
@@ -99,7 +103,7 @@ const Homepage = () => {
                 newArrivalProductWidget.items ||
                 newArrivalProductWidget.data ||
                 [];
-              
+
               // Normalize products to use profile_image instead of background_image and detect discounts
               const normalizedProducts = rawProducts.map(product => {
                 // For stores, prioritize profile_image over background_image
@@ -112,19 +116,19 @@ const Homepage = () => {
                 if (!displayImage) {
                   displayImage = product.background_image;
                 }
-                
+
                 // Check for discount prices
                 let specialPrice = product.special || product.special_price || product.discount_price || product.sale_price;
-                
+
                 // Check if discounts array exists and has items
                 if (!specialPrice && product.discounts && Array.isArray(product.discounts) && product.discounts.length > 0) {
                   // Get the first discount price
                   const firstDiscount = product.discounts[0];
                   specialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
                 }
-                
+
                 const rawPrice = product.price || product.price_text || product.price_display;
-                const specialNumeric = specialPrice && typeof specialPrice === "string" 
+                const specialNumeric = specialPrice && typeof specialPrice === "string"
                   ? parseFloat(specialPrice.replace(/[^0-9.]/g, ""))
                   : (typeof specialPrice === "number" ? specialPrice : null);
                 const regularNumeric = rawPrice && typeof rawPrice === "string"
@@ -132,7 +136,7 @@ const Homepage = () => {
                   : (typeof rawPrice === "number" ? rawPrice : null);
                 const originalPrice = product.original_price || product.regular_price || regularNumeric;
                 const hasDiscount = Number.isFinite(specialNumeric) && Number.isFinite(originalPrice) && specialNumeric < originalPrice;
-                
+
                 return {
                   ...product,
                   displayImage: displayImage,
@@ -142,7 +146,7 @@ const Homepage = () => {
                   displayPrice: hasDiscount ? specialNumeric : (regularNumeric || null)
                 };
               });
-              
+
               setNewArrivalProducts(normalizedProducts);
               console.log("New arrival products extracted and normalized:", normalizedProducts);
             }
@@ -247,7 +251,7 @@ const Homepage = () => {
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const found = [...listed];
       if (found.length === 0) {
@@ -272,20 +276,17 @@ const Homepage = () => {
   if (loading) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
+        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
       >
         <div className="text-center">
           <div
-            className={`animate-spin rounded-full h-16 w-16 border-b-4 mx-auto mb-4 ${
-              isDarkMode ? "border-blue-400" : "border-blue-600"
-            }`}
+            className={`animate-spin rounded-full h-16 w-16 border-b-4 mx-auto mb-4 ${isDarkMode ? "border-blue-400" : "border-blue-600"
+              }`}
           ></div>
           <div
-            className={`text-xl font-medium transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`text-xl font-medium transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
           >
             Loading...
           </div>
@@ -296,16 +297,15 @@ const Homepage = () => {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? "bg-gray-900" : ""
-      }`}
+      className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : ""
+        }`}
       style={{
         background: isDarkMode
           ? "linear-gradient(180deg, #0a0908, #22333b)"
           : "linear-gradient(180deg, #eae0d5, #c6ac8f)",
       }}
     >
-  {/* Global top padding now handled in App.js */}
+      {/* Global top padding now handled in App.js */}
 
       {/* Hero Section */}
       <section
@@ -315,17 +315,15 @@ const Homepage = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0908] via-[#22333b] to-[#0a0908] opacity-95" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-28 text-center">
           <div
-            className={`transform transition-all duration-1000 ${
-              isVisible
-                ? "translate-y-0 opacity-100"
-                : "translate-y-10 opacity-0"
-            }`}
+            className={`transform transition-all duration-1000 ${isVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-10 opacity-0"
+              }`}
           >
             {/* Main Headline */}
             <h1
-              className={`text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].text
-              }`}
+              className={`text-6xl md:text-7xl lg:text-8xl font-bold mb-8 leading-tight transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                }`}
             >
               {homeData?.hero?.title || "DISCOVER INFINITE"}{" "}
               <span
@@ -341,9 +339,8 @@ const Homepage = () => {
 
             {/* Subheading */}
             <p
-              className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
               style={{
                 textShadow: isDarkMode
                   ? "0 0 10px rgba(176, 184, 193, 0.3)"
@@ -377,23 +374,20 @@ const Homepage = () => {
       {categories.length > 0 && (
         <section
           id="services"
-          className={`py-20 transition-colors duration-300 ${
-            isDarkMode ? "bg-gray-900" : "bg-gray-50"
-          }`}
+          className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+            }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div
-              className={`transform transition-all duration-1000 delay-300 ${
-                isVisible
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-10 opacity-0"
-              }`}
+              className={`transform transition-all duration-1000 delay-300 ${isVisible
+                ? "translate-y-0 opacity-100"
+                : "translate-y-10 opacity-0"
+                }`}
             >
               <div className="text-center mb-16">
                 <h2
-                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].text
-                  }`}
+                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                    }`}
                   style={{
                     textShadow: isDarkMode
                       ? "0 0 20px rgba(0, 229, 255, 0.5)"
@@ -403,113 +397,129 @@ const Homepage = () => {
                   FEATURED CATEGORIES
                 </h2>
                 <p
-                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].textSecondary
-                  }`}
+                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                    }`}
                 >
                   Explore our digital universe of infinite possibilities.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* Category Cards from API */}
-                {categories.map((category, index) => {
-                  const glowColor = index % 2 === 0 ? "#00E5FF" : "#FF00FF";
-                  const categoryIcon = getCategoryIcon(category.name);
+              <div className="px-4">
+                <Swiper
+                  modules={[Autoplay, Pagination]}
+                  spaceBetween={30}
+                  slidesPerView={1}
+                  pagination={{ clickable: true }}
+                  autoplay={{
+                    delay: 3000,
+                    disableOnInteraction: false,
+                  }}
+                  breakpoints={{
+                    640: {
+                      slidesPerView: 2,
+                    },
+                    1024: {
+                      slidesPerView: 3,
+                    },
+                  }}
+                  className="pb-12"
+                >
+                  {/* Category Cards from API */}
+                  {categories.map((category, index) => {
+                    const glowColor = index % 2 === 0 ? "#00E5FF" : "#FF00FF";
+                    const categoryIcon = getCategoryIcon(category.name);
 
-                  return (
-                    <div
-                      key={category.category_id || index}
-                      className="relative group cursor-pointer"
-                    >
-                      <div
-                        className={`relative p-8 rounded-2xl transition-all duration-500 group-hover:scale-105 ${
-                          isDarkMode
-                            ? "bg-white/3 backdrop-blur-md"
-                            : "bg-white/80 backdrop-blur-md"
-                        }`}
-                        style={{
-                          border: `1px solid ${glowColor}`,
-                          boxShadow: `0 0 30px ${glowColor}30, inset 0 0 30px ${glowColor}10`,
-                        }}
-                      >
-                        {/* Hexagonal Pattern Overlay */}
+                    return (
+                      <SwiperSlide key={category.category_id || index}>
                         <div
-                          className={`absolute inset-0 transition-opacity duration-300 ${
-                            isDarkMode ? "opacity-10" : "opacity-5"
-                          }`}
-                          style={{
-                            backgroundImage: `
-                              radial-gradient(circle at 25% 25%, ${glowColor} 2px, transparent 2px),
-                              radial-gradient(circle at 75% 75%, ${glowColor} 2px, transparent 2px)
-                            `,
-                            backgroundSize: "40px 40px",
-                          }}
-                        />
-
-                        <div className="text-center relative z-10">
+                          className="relative group cursor-pointer h-full"
+                        >
                           <div
-                            className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:rotate-12"
+                            className={`relative p-8 rounded-2xl transition-all duration-500 group-hover:scale-105 h-full flex flex-col items-center justify-center ${isDarkMode
+                              ? "bg-white/3 backdrop-blur-md"
+                              : "bg-white/80 backdrop-blur-md"
+                              }`}
                             style={{
-                              background: `linear-gradient(135deg, ${glowColor}20, ${glowColor}40)`,
-                              border: `2px solid ${glowColor}`,
-                              boxShadow: `0 0 25px ${glowColor}50`,
+                              border: `1px solid ${glowColor}`,
+                              boxShadow: `0 0 30px ${glowColor}30, inset 0 0 30px ${glowColor}10`,
                             }}
                           >
-                            {category.image ? (
-                              <img
-                                src={category.image}
-                                alt={category.name}
-                                className="w-12 h-12 object-contain"
-                              />
-                            ) : (
-                              <span className="text-3xl">{categoryIcon}</span>
-                            )}
+                            {/* Hexagonal Pattern Overlay */}
+                            <div
+                              className={`absolute inset-0 transition-opacity duration-300 ${isDarkMode ? "opacity-10" : "opacity-5"
+                                }`}
+                              style={{
+                                backgroundImage: `
+                                  radial-gradient(circle at 25% 25%, ${glowColor} 2px, transparent 2px),
+                                  radial-gradient(circle at 75% 75%, ${glowColor} 2px, transparent 2px)
+                                `,
+                                backgroundSize: "40px 40px",
+                              }}
+                            />
+
+                            <div className="text-center relative z-10 w-full">
+                              <div
+                                className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-all duration-300 group-hover:rotate-12"
+                                style={{
+                                  background: `linear-gradient(135deg, ${glowColor}20, ${glowColor}40)`,
+                                  border: `2px solid ${glowColor}`,
+                                  boxShadow: `0 0 25px ${glowColor}50`,
+                                }}
+                              >
+                                {category.image ? (
+                                  <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-12 h-12 object-contain"
+                                  />
+                                ) : (
+                                  <span className="text-3xl">{categoryIcon}</span>
+                                )}
+                              </div>
+
+                              <h3
+                                className={`text-2xl font-bold mb-3 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                                  }`}
+                                style={{
+                                  textShadow: isDarkMode
+                                    ? `0 0 15px ${glowColor}80`
+                                    : "none",
+                                }}
+                              >
+                                {category.name.replace(/&amp;/g, "&")}
+                              </h3>
+
+                              <p
+                                className={`mb-4 text-sm transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"]
+                                  .textSecondary
+                                  }`}
+                              >
+                                {category.description ||
+                                  "Discover amazing products"}
+                              </p>
+
+                              <button
+                                onClick={() => {
+                                  const id = category.slug || category.category_id || category.id;
+                                  // Navigate to stores with categoryId query param
+                                  navigate(`/stores?categoryId=${encodeURIComponent(id)}`);
+                                }}
+                                className="px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:scale-105"
+                                style={{
+                                  background: `linear-gradient(90deg, ${glowColor}, ${glowColor}80)`,
+                                  color: "white",
+                                  boxShadow: `0 0 20px ${glowColor}40`,
+                                }}
+                              >
+                                EXPLORE
+                              </button>
+                            </div>
                           </div>
-
-                          <h3
-                            className={`text-2xl font-bold mb-3 transition-colors duration-300 ${
-                              colors[isDarkMode ? "dark" : "light"].text
-                            }`}
-                            style={{
-                              textShadow: isDarkMode
-                                ? `0 0 15px ${glowColor}80`
-                                : "none",
-                            }}
-                          >
-                            {category.name.replace(/&amp;/g, "&")}
-                          </h3>
-
-                          <p
-                            className={`mb-4 text-sm transition-colors duration-300 ${
-                              colors[isDarkMode ? "dark" : "light"]
-                                .textSecondary
-                            }`}
-                          >
-                            {category.description ||
-                              "Discover amazing products"}
-                          </p>
-
-                          <button
-                            onClick={() => {
-                              const id = category.slug || category.category_id || category.id;
-                              // Navigate to stores with categoryId query param
-                              navigate(`/stores?categoryId=${encodeURIComponent(id)}`);
-                            }}
-                            className="px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:scale-105"
-                            style={{
-                              background: `linear-gradient(90deg, ${glowColor}, ${glowColor}80)`,
-                              color: "white",
-                              boxShadow: `0 0 20px ${glowColor}40`,
-                            }}
-                          >
-                            EXPLORE
-                          </button>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      </SwiperSlide>
+                    );
+                  })}
+                </Swiper>
               </div>
             </div>
           </div>
@@ -519,23 +529,20 @@ const Homepage = () => {
       {/* New Arrivals Section */}
       {newArrivals.length > 0 && (
         <section
-          className={`py-20 transition-colors duration-300 ${
-            isDarkMode ? "bg-gray-900" : "bg-gray-50"
-          }`}
+          className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+            }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div
-              className={`transform transition-all duration-1000 delay-400 ${
-                isVisible
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-10 opacity-0"
-              }`}
+              className={`transform transition-all duration-1000 delay-400 ${isVisible
+                ? "translate-y-0 opacity-100"
+                : "translate-y-10 opacity-0"
+                }`}
             >
               <div className="text-center mb-16">
                 <h2
-                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].text
-                  }`}
+                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                    }`}
                   style={{
                     textShadow: isDarkMode
                       ? "0 0 20px rgba(0, 229, 255, 0.5)"
@@ -545,9 +552,8 @@ const Homepage = () => {
                   NEW ARRIVALS
                 </h2>
                 <p
-                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].textSecondary
-                  }`}
+                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                    }`}
                 >
                   Fresh products just landed from across the multiverse.
                 </p>
@@ -557,28 +563,23 @@ const Homepage = () => {
                 {newArrivals.slice(0, 8).map((item, index) => (
                   <div
                     key={item.product_id || item.store_id || index}
-                    className={`transform transition-all duration-500 delay-${
-                      index * 100
-                    } ${
-                      isVisible
+                    className={`transform transition-all duration-500 delay-${index * 100
+                      } ${isVisible
                         ? "translate-y-0 opacity-100"
                         : "translate-y-10 opacity-0"
-                    }`}
+                      }`}
                   >
                     <Link to={item.store_id ? `/store/${item.store_id}` : "#"}>
                       <div
-                        className={`relative p-4 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${
-                          isDarkMode
-                            ? "bg-white/3 backdrop-blur-md"
-                            : "bg-white/80 backdrop-blur-md"
-                        }`}
+                        className={`relative p-4 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${isDarkMode
+                          ? "bg-white/3 backdrop-blur-md"
+                          : "bg-white/80 backdrop-blur-md"
+                          }`}
                         style={{
-                          border: `1px solid ${
-                            index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                          }`,
-                          boxShadow: `0 0 25px ${
-                            index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                          }20`,
+                          border: `1px solid ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                            }`,
+                          boxShadow: `0 0 25px ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                            }20`,
                         }}
                       >
                         {/* Item Image */}
@@ -586,9 +587,8 @@ const Homepage = () => {
                           className="relative mb-4 overflow-hidden rounded-lg flex items-center justify-center p-4"
                           style={{
                             height: "200px",
-                            background: `linear-gradient(135deg, ${
-                              index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                            }20, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"}40)`,
+                            background: `linear-gradient(135deg, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                              }20, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"}40)`,
                           }}
                         >
                           {item.profile_image || item.logo || item.background_image ? (
@@ -648,14 +648,12 @@ const Homepage = () => {
                         {/* Item Info */}
                         <div className="text-center">
                           <h3
-                            className={`text-sm font-bold mb-2 line-clamp-2 transition-colors duration-300 ${
-                              colors[isDarkMode ? "dark" : "light"].text
-                            }`}
+                            className={`text-sm font-bold mb-2 line-clamp-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                              }`}
                             style={{
                               textShadow: isDarkMode
-                                ? `0 0 10px ${
-                                    index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                                  }60`
+                                ? `0 0 10px ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                                }60`
                                 : "none",
                             }}
                           >
@@ -665,10 +663,9 @@ const Homepage = () => {
                           {/* Description or Reviews */}
                           {item.description && (
                             <p
-                              className={`text-xs mb-3 line-clamp-2 transition-colors duration-300 ${
-                                colors[isDarkMode ? "dark" : "light"]
-                                  .textSecondary
-                              }`}
+                              className={`text-xs mb-3 line-clamp-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"]
+                                .textSecondary
+                                }`}
                             >
                               {item.description}
                             </p>
@@ -692,18 +689,14 @@ const Homepage = () => {
                           <button
                             className="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105"
                             style={{
-                              background: `linear-gradient(90deg, ${
-                                index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                              }20, ${
-                                index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                              }40)`,
-                              border: `1px solid ${
-                                index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                              }`,
+                              background: `linear-gradient(90deg, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                                }20, ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                                }40)`,
+                              border: `1px solid ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                                }`,
                               color: "white",
-                              boxShadow: `0 0 15px ${
-                                index % 2 === 0 ? "#00E5FF" : "#FF00FF"
-                              }20`,
+                              boxShadow: `0 0 15px ${index % 2 === 0 ? "#00E5FF" : "#FF00FF"
+                                }20`,
                             }}
                           >
                             {item.store_id ? "VISIT STORE" : "VIEW PRODUCT"}
@@ -722,23 +715,20 @@ const Homepage = () => {
       {/* Wishlist Products Section */}
       {wishlistProducts.length > 0 && (
         <section
-          className={`py-20 transition-colors duration-300 ${
-            isDarkMode ? "bg-gray-900" : "bg-gray-50"
-          }`}
+          className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+            }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div
-              className={`transform transition-all duration-1000 delay-500 ${
-                isVisible
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-10 opacity-0"
-              }`}
+              className={`transform transition-all duration-1000 delay-500 ${isVisible
+                ? "translate-y-0 opacity-100"
+                : "translate-y-10 opacity-0"
+                }`}
             >
               <div className="text-center mb-16">
                 <h2
-                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].text
-                  }`}
+                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                    }`}
                   style={{
                     textShadow: isDarkMode
                       ? "0 0 20px rgba(255, 0, 255, 0.5)"
@@ -748,9 +738,8 @@ const Homepage = () => {
                   WISHLIST PRODUCTS
                 </h2>
                 <p
-                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].textSecondary
-                  }`}
+                  className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                    }`}
                 >
                   Your favorite items waiting for you
                 </p>
@@ -762,36 +751,33 @@ const Homepage = () => {
                   const productName = item.name || item.product_name || `Product ${productId}`;
                   const productImage = item.image || item.thumb || item.image_url || '/no-image.png';
                   const productPrice = item.price || item.price_formated || item.priceDisplay;
-                  
+
                   return (
                     <div
                       key={index}
-                      className={`transform transition-all duration-500 delay-${
-                        index * 150
-                      } ${
-                        isVisible
+                      className={`transform transition-all duration-500 delay-${index * 150
+                        } ${isVisible
                           ? "translate-y-0 opacity-100"
                           : "translate-y-10 opacity-0"
-                      }`}
+                        }`}
                     >
                       <Link
                         to={`/product/${productId}`}
-                        className={`relative p-6 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer block ${
-                          isDarkMode
-                            ? "bg-white/2 backdrop-blur-md"
-                            : "bg-white/80 backdrop-blur-md"
-                        }`}
+                        className={`relative p-6 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer block ${isDarkMode
+                          ? "bg-white/2 backdrop-blur-md"
+                          : "bg-white/80 backdrop-blur-md"
+                          }`}
                         style={{
                           border: isDarkMode ? "1px solid #00E5FF" : "1px solid #e5e7eb",
-                          boxShadow: isDarkMode 
+                          boxShadow: isDarkMode
                             ? "0 0 25px rgba(0, 229, 255, 0.2), inset 0 0 25px rgba(0, 229, 255, 0.05)"
                             : "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                         }}
                       >
                         {/* Product Image */}
                         <div className="w-full h-48 rounded-lg flex items-center justify-center mx-auto mb-4 overflow-hidden bg-gray-100">
-                          <img 
-                            src={productImage} 
+                          <img
+                            src={productImage}
                             alt={productName}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             onError={(e) => { e.currentTarget.src = '/no-image.png'; }}
@@ -800,9 +786,8 @@ const Homepage = () => {
 
                         {/* Product Name */}
                         <h3
-                          className={`text-lg font-bold mb-2 transition-colors duration-300 line-clamp-2 ${
-                            colors[isDarkMode ? "dark" : "light"].text
-                          }`}
+                          className={`text-lg font-bold mb-2 transition-colors duration-300 line-clamp-2 ${colors[isDarkMode ? "dark" : "light"].text
+                            }`}
                           style={{
                             textShadow: isDarkMode
                               ? "0 0 10px rgba(0, 229, 255, 0.6)"
@@ -828,12 +813,12 @@ const Homepage = () => {
                         <button
                           className="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:scale-105"
                           style={{
-                            background: isDarkMode 
+                            background: isDarkMode
                               ? "linear-gradient(90deg, rgba(0, 229, 255, 0.2), rgba(0, 229, 255, 0.4))"
                               : "linear-gradient(90deg, rgba(8, 145, 178, 0.2), rgba(8, 145, 178, 0.4))",
                             border: isDarkMode ? "1px solid #00E5FF" : "1px solid #0891b2",
                             color: isDarkMode ? "white" : "#0891b2",
-                            boxShadow: isDarkMode 
+                            boxShadow: isDarkMode
                               ? "0 0 15px rgba(0, 229, 255, 0.2)"
                               : "0 0 15px rgba(8, 145, 178, 0.2)",
                           }}
@@ -853,28 +838,24 @@ const Homepage = () => {
       {/* New Arrival Products Section (from home_page_builder 'new_arrival_product') */}
       {newArrivalProducts && newArrivalProducts.length > 0 && (
         <section
-          className={`py-20 transition-colors duration-300 ${
-            isDarkMode ? "bg-gray-900" : "bg-gray-50"
-          }`}
+          className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+            }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div
-              className={`transform transition-all duration-1000 delay-700 ${
-                isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-              }`}
+              className={`transform transition-all duration-1000 delay-700 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                }`}
             >
               <div className="text-center mb-16">
                 <h2
-                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].text
-                  }`}
+                  className={`text-4xl md:text-5xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                    }`}
                 >
                   NEW ARRIVAL PRODUCTS
                 </h2>
                 <p
-                  className={`text-xl max-w-2xl mx-auto mb-6 transition-colors duration-300 ${
-                    colors[isDarkMode ? "dark" : "light"].textSecondary
-                  }`}
+                  className={`text-xl max-w-2xl mx-auto mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                    }`}
                 >
                   Browse the latest products freshly added to the marketplace.
                 </p>
@@ -895,15 +876,13 @@ const Homepage = () => {
                 {newArrivalProducts.slice(0, 12).map((item, idx) => (
                   <div
                     key={item.id || item.product_id || item.store_id || idx}
-                    className={`transform transition-all duration-500 delay-${idx * 80} ${
-                      isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-                    }`}
+                    className={`transform transition-all duration-500 delay-${idx * 80} ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+                      }`}
                   >
                     <Link to={item.product_id ? `/product/${item.product_id}` : item.store_id ? `/store/${item.store_id}` : '#'}>
                       <div
-                        className={`relative p-4 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${
-                          isDarkMode ? "bg-white/3 backdrop-blur-md" : "bg-white/80 backdrop-blur-md"
-                        }`}
+                        className={`relative p-4 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer ${isDarkMode ? "bg-white/3 backdrop-blur-md" : "bg-white/80 backdrop-blur-md"
+                          }`}
                         style={{ border: `1px solid #e5e7eb`, boxShadow: `0 4px 12px rgba(0,0,0,0.06)` }}
                       >
                         <div className="relative mb-4 overflow-hidden rounded-lg flex items-center justify-center p-4" style={{ height: 180, background: '#f7fafc' }}>
@@ -951,9 +930,8 @@ const Homepage = () => {
         </section>
       )}
       <section
-        className={`py-20 transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
+        className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -987,20 +965,17 @@ const Homepage = () => {
             ).map((stat, index) => (
               <div
                 key={index}
-                className={`transform transition-all duration-500 delay-${
-                  index * 200
-                } ${
-                  isVisible
+                className={`transform transition-all duration-500 delay-${index * 200
+                  } ${isVisible
                     ? "translate-y-0 opacity-100"
                     : "translate-y-10 opacity-0"
-                }`}
+                  }`}
               >
                 <div
-                  className={`relative p-6 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    isDarkMode
-                      ? "bg-white/3 backdrop-blur-md"
-                      : "bg-white/80 backdrop-blur-md"
-                  }`}
+                  className={`relative p-6 rounded-xl transition-all duration-300 hover:scale-105 ${isDarkMode
+                    ? "bg-white/3 backdrop-blur-md"
+                    : "bg-white/80 backdrop-blur-md"
+                    }`}
                   style={{
                     border: `1px solid ${stat.glow}`,
                     boxShadow: `0 0 25px ${stat.glow}20, inset 0 0 25px ${stat.glow}05`,
@@ -1022,9 +997,8 @@ const Homepage = () => {
                     {stat.number}
                   </div>
                   <div
-                    className={`text-lg font-medium transition-colors duration-300 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`text-lg font-medium transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                     style={{
                       textShadow: isDarkMode
                         ? "0 0 5px rgba(176, 184, 193, 0.3)"
@@ -1043,17 +1017,15 @@ const Homepage = () => {
       {/* About Section */}
       <section
         id="about"
-        className={`py-20 transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
+        className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2
-                className={`text-4xl font-bold mb-6 transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].text
-                }`}
+                className={`text-4xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                  }`}
                 style={{
                   textShadow: isDarkMode
                     ? "0 0 20px rgba(0, 229, 255, 0.5)"
@@ -1063,9 +1035,8 @@ const Homepage = () => {
                 Why Choose Multiverse Market?
               </h2>
               <p
-                className={`text-xl mb-8 transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].textSecondary
-                }`}
+                className={`text-xl mb-8 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                  }`}
               >
                 We connect you with trusted sellers from across infinite
                 dimensions, offering you access to unique products and
@@ -1099,9 +1070,8 @@ const Homepage = () => {
                   </div>
                   <div>
                     <h3
-                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                       style={{
                         textShadow: isDarkMode
                           ? "0 0 10px rgba(0, 229, 255, 0.5)"
@@ -1111,9 +1081,8 @@ const Homepage = () => {
                       Verified Sellers
                     </h3>
                     <p
-                      className={`transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].textSecondary
-                      }`}
+                      className={`transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
                     >
                       All our sellers are thoroughly verified across multiple
                       dimensions to ensure quality and reliability.
@@ -1147,9 +1116,8 @@ const Homepage = () => {
                   </div>
                   <div>
                     <h3
-                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                       style={{
                         textShadow: isDarkMode
                           ? "0 0 10px rgba(255, 0, 255, 0.5)"
@@ -1159,9 +1127,8 @@ const Homepage = () => {
                       Quantum Payments
                     </h3>
                     <p
-                      className={`transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].textSecondary
-                      }`}
+                      className={`transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
                     >
                       Your transactions are protected with quantum-level
                       security across all dimensions.
@@ -1195,9 +1162,8 @@ const Homepage = () => {
                   </div>
                   <div>
                     <h3
-                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`text-lg font-semibold mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                       style={{
                         textShadow: isDarkMode
                           ? "0 0 10px rgba(0, 229, 255, 0.5)"
@@ -1207,9 +1173,8 @@ const Homepage = () => {
                       Infinite Selection
                     </h3>
                     <p
-                      className={`transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].textSecondary
-                      }`}
+                      className={`transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
                     >
                       Carefully curated products from the best sellers across
                       infinite universes.
@@ -1225,15 +1190,13 @@ const Homepage = () => {
       {/* Contact Section */}
       <section
         id="contact"
-        className={`py-20 transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
+        className={`py-20 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2
-            className={`text-4xl font-bold mb-6 transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`text-4xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
             style={{
               textShadow: isDarkMode
                 ? "0 0 20px rgba(255, 0, 255, 0.5)"
@@ -1243,9 +1206,8 @@ const Homepage = () => {
             Ready to Begin Your Journey?
           </h2>
           <p
-            className={`text-xl mb-12 transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].textSecondary
-            }`}
+            className={`text-xl mb-12 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+              }`}
           >
             Join thousands of explorers who have discovered infinite
             possibilities through our cosmic marketplace.
@@ -1284,29 +1246,26 @@ const Homepage = () => {
 
       {/* Footer */}
       <footer
-        className={`py-16 transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
+        className={`py-16 transition-colors duration-300 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-6">
                 <div className="flex items-center space-x-3">
-                  <img src={`${process.env.PUBLIC_URL}/logo-multi-store.png`} alt="multi-store" className="h-8 w-auto" onError={(e)=>{e.currentTarget.style.display='none';}} />
+                  <img src={`${process.env.PUBLIC_URL}/logo-multi-store.png`} alt="multi-store" className="h-8 w-auto" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   <span
-                    className={`font-bold text-lg transition-colors duration-300 ${
-                      colors[isDarkMode ? "dark" : "light"].text
-                    }`}
+                    className={`font-bold text-lg transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                      }`}
                   >
                     multi-store
                   </span>
                 </div>
               </div>
               <p
-                className={`mb-6 max-w-md transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].textSecondary
-                }`}
+                className={`mb-6 max-w-md transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                  }`}
               >
                 Connecting explorers with trusted sellers across infinite
                 dimensions. Your gateway to cosmic commerce and exceptional
@@ -1342,28 +1301,25 @@ const Homepage = () => {
 
             <div>
               <h3
-                className={`text-lg font-semibold mb-6 transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].text
-                }`}
-                
+                className={`text-lg font-semibold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                  }`}
+
               >
                 ABOUT US
               </h3>
               <ul className="space-y-3">
                 <li>
                   <button
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     Home
                   </button>
                 </li>
                 <li>
                   <button
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     About
                   </button>
@@ -1371,18 +1327,16 @@ const Homepage = () => {
                 <li>
                   <Link
                     to="/services"
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     Services
                   </Link>
                 </li>
                 <li>
                   <button
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     Contact
                   </button>
@@ -1392,10 +1346,9 @@ const Homepage = () => {
 
             <div>
               <h3
-                className={`text-lg font-semibold mb-6 transition-colors duration-300 ${
-                  colors[isDarkMode ? "dark" : "light"].text
-                }`}
-                
+                className={`text-lg font-semibold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                  }`}
+
               >
                 CUSTOMER SERVICE
               </h3>
@@ -1403,9 +1356,8 @@ const Homepage = () => {
                 {user && !user.isGuest ? (
                   <li>
                     <div
-                      className={`font-medium transition-colors duration-200 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`font-medium transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                     >
                       Hello, {user.firstname || user.name?.split(' ')[0] || ''} {user.lastname || user.name?.split(' ')[1] || ''}
                     </div>
@@ -1415,9 +1367,8 @@ const Homepage = () => {
                     <li>
                       <Link
                         to="/login"
-                        className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                          colors[isDarkMode ? "dark" : "light"].textSecondary
-                        }`}
+                        className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                          }`}
                       >
                         Login
                       </Link>
@@ -1425,9 +1376,8 @@ const Homepage = () => {
                     <li>
                       <Link
                         to="/signup"
-                        className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                          colors[isDarkMode ? "dark" : "light"].textSecondary
-                        }`}
+                        className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                          }`}
                       >
                         Sign Up
                       </Link>
@@ -1436,18 +1386,16 @@ const Homepage = () => {
                 )}
                 <li>
                   <button
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     Help Center
                   </button>
                 </li>
                 <li>
                   <button
-                    className={`hover:text-[#5e503f] transition-colors duration-200 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
+                    className={`hover:text-[#5e503f] transition-colors duration-200 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                      }`}
                   >
                     Contact Support
                   </button>
@@ -1461,9 +1409,8 @@ const Homepage = () => {
             style={{ borderColor: "rgba(198, 172, 143, 0.35)" }}
           >
             <p
-              className={`transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
             >
               &copy; 2025 multi-store. All rights reserved.
             </p>

@@ -17,10 +17,9 @@ const LatestProductsPage = () => {
     try {
       setLoading(true);
       const response = await getLatest();
-      console.log("Latest products response:", response);
-      
+
       if (response.success && response.data) {
-        setProducts(Array.isArray(response.data) ? response.data : []);
+        setProducts(response.data);
       }
     } catch (error) {
       console.error("Error fetching latest products:", error);
@@ -43,9 +42,8 @@ const LatestProductsPage = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1
-            className={`text-4xl md:text-5xl font-bold mb-4 transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`text-4xl md:text-5xl font-bold mb-4 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
             style={{
               textShadow: isDarkMode ? "0 0 20px rgba(0, 229, 255, 0.5)" : "none",
             }}
@@ -53,9 +51,8 @@ const LatestProductsPage = () => {
             LATEST PRODUCTS
           </h1>
           <p
-            className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].textSecondary
-            }`}
+            className={`text-xl max-w-2xl mx-auto transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+              }`}
           >
             Browse our newest arrivals - fresh products just added to the marketplace
           </p>
@@ -75,16 +72,17 @@ const LatestProductsPage = () => {
               const productId = product.product_id || product.id;
               const productName = product.name || product.title || product.product_name || `Product ${productId}`;
               const productImage = product.image || product.thumb || product.background_image || product.profile_image || '/no-image.png';
-              const productPrice = product.price || product.price_formated || product.priceDisplay;
               const storeName = product.store_name || product.store;
+
+              // Use the normalized discount data from fetchLatestProducts
+              const { hasDiscount, specialPriceDisplay, originalPriceDisplay, priceDisplay } = product;
 
               return (
                 <Link
                   key={productId || index}
                   to={`/product/${productId}`}
-                  className={`relative p-5 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer block ${
-                    isDarkMode ? "bg-white/3 backdrop-blur-md" : "bg-white/90 backdrop-blur-md"
-                  }`}
+                  className={`relative p-5 rounded-xl transition-all duration-300 hover:scale-105 group cursor-pointer block ${isDarkMode ? "bg-white/3 backdrop-blur-md" : "bg-white/90 backdrop-blur-md"
+                    }`}
                   style={{
                     border: isDarkMode ? "1px solid #00E5FF40" : "1px solid #e5e7eb",
                     boxShadow: isDarkMode
@@ -114,9 +112,8 @@ const LatestProductsPage = () => {
                   {/* Product Info */}
                   <div className="text-center">
                     <h3
-                      className={`text-base font-bold mb-2 line-clamp-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`text-base font-bold mb-2 line-clamp-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                       style={{
                         textShadow: isDarkMode ? "0 0 10px rgba(0, 229, 255, 0.3)" : "none",
                       }}
@@ -127,22 +124,39 @@ const LatestProductsPage = () => {
                     {/* Store Name */}
                     {storeName && (
                       <p
-                        className={`text-xs mb-2 transition-colors duration-300 ${
-                          colors[isDarkMode ? "dark" : "light"].textSecondary
-                        }`}
+                        className={`text-xs mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                          }`}
                       >
                         🏪 {storeName}
                       </p>
                     )}
 
                     {/* Price */}
-                    {productPrice && (
+                    {hasDiscount ? (
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <span
+                          className="text-xl font-bold"
+                          style={{ color: isDarkMode ? "#00E5FF" : "#0891b2" }}
+                        >
+                          {specialPriceDisplay}
+                        </span>
+                        <span
+                          className={`text-sm line-through ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                            }`}
+                        >
+                          {originalPriceDisplay}
+                        </span>
+                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                          SALE
+                        </span>
+                      </div>
+                    ) : (
                       <div className="mb-3">
                         <span
                           className="text-xl font-bold"
                           style={{ color: isDarkMode ? "#00E5FF" : "#0891b2" }}
                         >
-                          {productPrice}
+                          {priceDisplay}
                         </span>
                       </div>
                     )}

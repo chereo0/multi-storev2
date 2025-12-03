@@ -12,6 +12,7 @@ import {
   removeFromCartAPI,
   updateCartAPI,
   getCart as apiGetCart,
+  normalizeProduct,
 } from "../api/services";
 
 const CartContext = createContext();
@@ -74,10 +75,10 @@ export const CartProvider = ({ children }) => {
           const products = Array.isArray(res.data.products)
             ? res.data.products
             : Array.isArray(res.data.items)
-            ? res.data.items
-            : Array.isArray(res.data)
-            ? res.data
-            : [];
+              ? res.data.items
+              : Array.isArray(res.data)
+                ? res.data
+                : [];
 
           if (products.length > 0) {
             const normalized = products.map((it) => {
@@ -109,7 +110,12 @@ export const CartProvider = ({ children }) => {
                 };
               }
 
-              return { product: { id: Number(prodObj.id || prodObj.product_id || prodObj.productId), name: prodObj.name || '', price: prodObj.price || 0, image: prodObj.image }, storeId: it.store_id || it.storeId || 1, quantity: isNaN(qty) ? 1 : qty, option };
+              return {
+                product: normalizeProduct(prodObj) || { id: Number(prodObj.id), name: prodObj.name || '', price: prodObj.price || 0, image: prodObj.image },
+                storeId: it.store_id || it.storeId || 1,
+                quantity: isNaN(qty) ? 1 : qty,
+                option
+              };
             });
 
             setCartItems(normalized);
@@ -154,10 +160,12 @@ export const CartProvider = ({ children }) => {
             : item
         );
       } else {
-        return [...prev, { product, storeId, quantity, option: option ? { 
-          product_option_id: option.product_option_id,
-          product_option_value_id: option.product_option_value_id
-        } : undefined }];
+        return [...prev, {
+          product, storeId, quantity, option: option ? {
+            product_option_id: option.product_option_id,
+            product_option_value_id: option.product_option_value_id
+          } : undefined
+        }];
       }
     });
 
@@ -199,11 +207,11 @@ export const CartProvider = ({ children }) => {
 
       if (!isSuccess) {
         setCartItems(backupRef.current || []);
-        
+
         // Handle error - check if it's a multi-store conflict
         let message = "Could not add to cart";
         let isMultiStoreError = false;
-        
+
         if (res?.error) {
           if (Array.isArray(res.error)) {
             // Server returned error as array (e.g., ["Your cart already contains..."])
@@ -211,24 +219,24 @@ export const CartProvider = ({ children }) => {
           } else if (typeof res.error === "string") {
             message = res.error;
           }
-          
+
           // Check if this is a multi-store conflict
-          if (message.toLowerCase().includes("cart already contains") || 
-              message.toLowerCase().includes("different store")) {
+          if (message.toLowerCase().includes("cart already contains") ||
+            message.toLowerCase().includes("different store")) {
             isMultiStoreError = true;
           }
         } else if (res?.message) {
           message = res.message;
         }
-        
+
         console.log("addToCart: Error type:", isMultiStoreError ? "Multi-store conflict" : "General error");
-        
+
         // If it's a multi-store error, show confirmation dialog
         if (isMultiStoreError) {
           const confirmClear = window.confirm(
             `${message}\n\nWould you like to clear your current cart and add this item?`
           );
-          
+
           if (confirmClear) {
             console.log("User confirmed: Clearing cart and adding new item");
             // Clear the cart first, then add the new item
@@ -269,16 +277,16 @@ export const CartProvider = ({ children }) => {
       try {
         const fullCartRes = await apiGetCart();
         console.log("addToCart: fetched full cart from server:", fullCartRes);
-        
+
         if (fullCartRes && fullCartRes.data) {
           // Normalize the server cart response (same logic as initial sync on mount)
           const products = Array.isArray(fullCartRes.data.products)
             ? fullCartRes.data.products
             : Array.isArray(fullCartRes.data.items)
-            ? fullCartRes.data.items
-            : Array.isArray(fullCartRes.data)
-            ? fullCartRes.data
-            : [];
+              ? fullCartRes.data.items
+              : Array.isArray(fullCartRes.data)
+                ? fullCartRes.data
+                : [];
 
           if (products.length > 0) {
             const normalized = products.map((it) => {
@@ -293,7 +301,7 @@ export const CartProvider = ({ children }) => {
                 originalPrice: it.originalPrice || (it.product && it.product.originalPrice) || null,
               };
               const qty = Number(it.quantity || it.qty || it.count || 1);
-              
+
               // Map option if present
               let option = undefined;
               if (Array.isArray(it.option) && it.option.length > 0) {
@@ -312,19 +320,19 @@ export const CartProvider = ({ children }) => {
                 };
               }
 
-              return { 
-                product: { 
-                  id: Number(prodObj.id || prodObj.product_id || prodObj.productId), 
-                  name: prodObj.name || '', 
-                  price: prodObj.price || 0, 
+              return {
+                product: normalizeProduct(prodObj) || {
+                  id: Number(prodObj.id || prodObj.product_id || prodObj.productId),
+                  name: prodObj.name || '',
+                  price: prodObj.price || 0,
                   image: prodObj.image,
                   hasDiscount: prodObj.hasDiscount,
                   specialPrice: prodObj.specialPrice,
                   originalPrice: prodObj.originalPrice,
-                }, 
-                storeId: it.store_id || it.storeId || 1, 
-                quantity: isNaN(qty) ? 1 : qty, 
-                option 
+                },
+                storeId: it.store_id || it.storeId || 1,
+                quantity: isNaN(qty) ? 1 : qty,
+                option
               };
             });
 
@@ -424,17 +432,17 @@ export const CartProvider = ({ children }) => {
           const normalized = res.data.items.map((it) => {
             const productObj = it.product ||
               it.product_detail || {
-                id: it.product_id || it.productId,
-                name: it.name || it.title,
-                price: it.price || it.unit_price,
-                image:
-                  it.image ||
-                  (it.product && it.product.image) ||
-                  "/no-image.png",
-              };
+              id: it.product_id || it.productId,
+              name: it.name || it.title,
+              price: it.price || it.unit_price,
+              image:
+                it.image ||
+                (it.product && it.product.image) ||
+                "/no-image.png",
+            };
             const store = it.store_id || it.storeId || it.store;
             const qty = it.quantity || it.qty || it.count || 1;
-            return { product: productObj, storeId: store, quantity: qty };
+            return { product: normalizeProduct(productObj), storeId: store, quantity: qty };
           });
           setCartItems(normalized);
         }
@@ -485,7 +493,7 @@ export const CartProvider = ({ children }) => {
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
       // Use discounted price if available, otherwise use regular price
-      const effectivePrice = (item.product.hasDiscount && item.product.specialPrice) 
+      const effectivePrice = (item.product.hasDiscount && item.product.specialPrice)
         ? (typeof item.product.specialPrice === 'number' ? item.product.specialPrice : parseFloat(item.product.specialPrice) || item.product.price)
         : item.product.price;
       return total + effectivePrice * item.quantity;

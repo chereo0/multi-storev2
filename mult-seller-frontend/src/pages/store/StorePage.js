@@ -7,12 +7,11 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useWishlist } from "../../context/WishlistContext";
-import {
-  getStore,
-  getProducts,
-  getStoreReviews,
-  submitStoreReview,
-} from "../../api/services";
+import { getStore, getProducts, getStoreReviews, submitStoreReview } from "../../api/services";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 import { Facebook, Twitter, Instagram, Linkedin, Youtube, MessageCircle } from "lucide-react";
 
 const StorePage = () => {
@@ -95,66 +94,11 @@ const StorePage = () => {
           setStore((prev) => ({ ...(prev || {}), ...mapped }));
         }
 
-        // Normalize products: backend may return various shapes. Handle the API shape you pasted:
-        // { success: 1, data: { store_info: {...}, new_products: [ { product_id, name, image, price }, ... ] } }
+        // Normalize products: backend may return various shapes.
+        // getProducts now returns normalized data via services.js
         if (productsResult && productsResult.success) {
-          let p = productsResult.data;
-          // If payload is wrapper object, try to extract arrays
-          if (!Array.isArray(p)) {
-            // common fields: data, products, new_products, items
-            p = p?.data || p?.products || p?.new_products || p?.items || p;
-          }
-          // At this point p might still be an object (if we assigned prodPayload earlier), ensure array
-          if (!Array.isArray(p)) {
-            // If original data contained new_products nested under data, try that
-            const maybe =
-              productsResult.data?.data?.new_products ||
-              productsResult.data?.new_products;
-            p = Array.isArray(maybe) ? maybe : [];
-          }
-
-          // Normalize product fields (server uses product_id)
-          const normalized = p.map((prod) => {
-            const rawPrice =
-              prod.price || prod.price_text || prod.price_display || "";
-            const numeric =
-              typeof rawPrice === "string"
-                ? parseFloat(rawPrice.replace(/[^0-9.]/g, ""))
-                : rawPrice;
-            
-            // Check for discount/special prices
-            let specialPrice = prod.special || prod.special_price || prod.discount_price || prod.sale_price;
-            
-            // Check if discounts array exists and has items
-            if (!specialPrice && prod.discounts && Array.isArray(prod.discounts) && prod.discounts.length > 0) {
-              // Get the first discount price
-              const firstDiscount = prod.discounts[0];
-              specialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
-            }
-            
-            const specialNumeric = specialPrice && typeof specialPrice === "string" 
-              ? parseFloat(specialPrice.replace(/[^0-9.]/g, ""))
-              : (typeof specialPrice === "number" ? specialPrice : null);
-            
-            const originalPrice = prod.original_price || prod.regular_price || numeric;
-            const hasDiscount = Number.isFinite(specialNumeric) && Number.isFinite(originalPrice) && specialNumeric < originalPrice;
-            
-            return {
-              id: prod.product_id || prod.id,
-              name: prod.name || prod.title || "Product",
-              image:
-                prod.image || prod.image_url || prod.picture || "/no-image.png",
-              price: hasDiscount ? specialNumeric : (Number.isFinite(numeric) ? numeric : null),
-              priceDisplay: hasDiscount 
-                ? `$${specialNumeric.toFixed(2)}`
-                : (rawPrice || (Number.isFinite(numeric) ? `$${numeric}` : null)),
-              originalPrice: hasDiscount ? originalPrice : null,
-              hasDiscount: hasDiscount,
-              description: prod.description || prod.short_description || "",
-              inStock: prod.in_stock !== undefined ? !!prod.in_stock : true,
-            };
-          });
-          setProducts(normalized);
+          const p = productsResult.data;
+          setProducts(Array.isArray(p) ? p : []);
         } else {
           setProducts([]);
         }
@@ -165,7 +109,7 @@ const StorePage = () => {
           if (!Array.isArray(r)) {
             r = r?.data || r?.reviews || [];
           }
-          
+
           // Normalize review fields to match UI expectations
           const normalizedReviews = (Array.isArray(r) ? r : []).map((review) => ({
             id: review.id || review.review_id || review._id || `review-${Date.now()}-${Math.random()}`,
@@ -176,7 +120,7 @@ const StorePage = () => {
             comment: review.comment || review.text || review.review || review.message || review.description || '',
             date: review.date || review.created_at || review.date_added || new Date().toISOString().split('T')[0],
           }));
-          
+
           setReviews(normalizedReviews);
         } else {
           setReviews([]);
@@ -263,9 +207,8 @@ const StorePage = () => {
   if (!store) {
     return (
       <div
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-          isDarkMode ? "" : ""
-        }`}
+        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? "" : ""
+          }`}
         style={{
           background: isDarkMode
             ? "linear-gradient(180deg, #0a0908, #22333b)"
@@ -274,9 +217,8 @@ const StorePage = () => {
       >
         <div className="text-center">
           <h2
-            className={`text-2xl font-bold mb-4 transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`text-2xl font-bold mb-4 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
           >
             Store not found
           </h2>
@@ -326,9 +268,8 @@ const StorePage = () => {
   }
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? "text-white" : "text-gray-900"
-      }`}
+      className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "text-white" : "text-gray-900"
+        }`}
       style={{
         background: isDarkMode
           ? "linear-gradient(180deg, #0a0908, #22333b)"
@@ -354,62 +295,55 @@ const StorePage = () => {
 
       {/* Header */}
       <div
-        className={`backdrop-blur-md border-b sticky top-0 z-30 transition-colors duration-300 ${
-          isDarkMode
-            ? "bg-black/40 border-white/10"
-            : "bg-white/80 border-gray-200"
-        }`}
+        className={`backdrop-blur-md border-b sticky top-0 z-30 transition-colors duration-300 ${isDarkMode
+          ? "bg-black/40 border-white/10"
+          : "bg-white/80 border-gray-200"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
             to="/home"
-            className={`font-bold text-lg transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`font-bold text-lg transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
           >
             {store?.name || "Store"}
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <a
               href="#featured"
-              className={`hover:text-cyan-300 transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`hover:text-cyan-300 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
             >
               Featured
             </a>
             <a
               href="#products"
-              className={`hover:text-fuchsia-300 transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`hover:text-fuchsia-300 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
             >
               Products
             </a>
             <a
               href="#reviews"
-              className={`hover:text-cyan-300 transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`hover:text-cyan-300 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
             >
               Reviews
             </a>
           </nav>
           <div className="flex items-center gap-4">
             <div
-              className={`text-xs sm:text-sm transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].textSecondary
-              }`}
+              className={`text-xs sm:text-sm transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                }`}
             >
               In this store: <span className="font-semibold">{storeCount}</span>
             </div>
             <Link
               to="/cart"
-              className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${
-                isDarkMode
-                  ? "border-cyan-400/40 hover:bg-cyan-400/10"
-                  : "border-cyan-600/40 hover:bg-cyan-600/10"
-              }`}
+              className={`px-4 py-2 rounded-lg border transition-colors duration-300 ${isDarkMode
+                ? "border-cyan-400/40 hover:bg-cyan-400/10"
+                : "border-cyan-600/40 hover:bg-cyan-600/10"
+                }`}
             >
               Cart
             </Link>
@@ -437,201 +371,195 @@ const StorePage = () => {
                 }}
               />
             )}
-            
+
             {/* Content Layer */}
-            <div 
+            <div
               className="relative p-6 md:p-10"
               style={{
-                background: store.banner 
-                  ? (isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.75)') 
+                background: store.banner
+                  ? (isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.75)')
                   : (isDarkMode ? 'rgba(10,14,39,0.55)' : 'rgba(255,255,255,0.8)'),
                 backdropFilter: store.banner ? 'blur(8px)' : 'none',
               }}
             >
               <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
-                <img
-                  src={
-                    store.logo || store.raw?.profile_image || store.raw?.logo || store.profile_image || '/no-image.png'
-                  }
-                  alt={store.name}
-                  onError={(e) => {
-                    try {
-                      e.currentTarget.src = '/no-image.png';
-                    } catch (err) {}
-                  }}
-                  className={`w-16 h-16 md:w-20 md:h-20 rounded-full border-4 transition-colors duration-300 ${
-                    isDarkMode ? "border-white/70" : "border-gray-300"
-                  }`}
-                />
-                <div>
-                  <h1
-                    className={`text-3xl md:text-5xl font-extrabold leading-tight transition-colors duration-300 ${
-                      colors[isDarkMode ? "dark" : "light"].text
-                    }`}
-                  >
-                    {store.name}
-                  </h1>
-                  <p
-                    className={`mt-1 transition-colors duration-300 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
-                  >
-                    {store.description}
-                  </p>
-                  <div
-                    className={`mt-2 text-sm flex items-center gap-4 ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
-                  >
-                    {store.average_rating && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">
-                          {store.average_rating}
+                <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+                  <img
+                    src={
+                      store.logo || store.raw?.profile_image || store.raw?.logo || store.profile_image || '/no-image.png'
+                    }
+                    alt={store.name}
+                    onError={(e) => {
+                      try {
+                        e.currentTarget.src = '/no-image.png';
+                      } catch (err) { }
+                    }}
+                    className={`w-16 h-16 md:w-20 md:h-20 rounded-full border-4 transition-colors duration-300 ${isDarkMode ? "border-white/70" : "border-gray-300"
+                      }`}
+                  />
+                  <div>
+                    <h1
+                      className={`text-3xl md:text-5xl font-extrabold leading-tight transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
+                    >
+                      {store.name}
+                    </h1>
+                    <p
+                      className={`mt-1 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
+                    >
+                      {store.description}
+                    </p>
+                    <div
+                      className={`mt-2 text-sm flex items-center gap-4 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
+                    >
+                      {store.average_rating && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">
+                            {store.average_rating}
+                          </span>
+                          <span
+                            className={`text-xs ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                              }`}
+                          >
+                            ({store.total_reviews || 0} reviews)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className={`mt-2 text-sm ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                        }`}
+                    >
+                      {store.owner && (
+                        <span className="mr-4">
+                          Owner:{" "}
+                          <span className="font-medium">{store.owner}</span>
                         </span>
-                        <span
-                          className={`text-xs ${
-                            colors[isDarkMode ? "dark" : "light"].textSecondary
-                          }`}
+                      )}
+                      {store.email && (
+                        <a
+                          className="mr-4 text-indigo-500"
+                          href={`mailto:${store.email}`}
                         >
-                          ({store.total_reviews || 0} reviews)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div
-                    className={`mt-2 text-sm ${
-                      colors[isDarkMode ? "dark" : "light"].textSecondary
-                    }`}
-                  >
-                    {store.owner && (
-                      <span className="mr-4">
-                        Owner:{" "}
-                        <span className="font-medium">{store.owner}</span>
-                      </span>
-                    )}
-                    {store.email && (
-                      <a
-                        className="mr-4 text-indigo-500"
-                        href={`mailto:${store.email}`}
-                      >
-                        {store.email}
-                      </a>
-                    )}
-                    {store.telephone && (
-                      <a
-                        className="text-indigo-500"
-                        href={`tel:${store.telephone}`}
-                      >
-                        {store.telephone}
-                      </a>
-                    )}
-                  </div>
-                  <div className="mt-2 flex items-center gap-3">
-                    {store.facebook && (
-                      <a
-                        href={store.facebook}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
-                        aria-label="Facebook"
-                        title="Facebook"
-                      >
-                        <Facebook className="w-4 h-4" />
-                      </a>
-                    )}
-                    {store.twitter && (
-                      <a
-                        href={store.twitter}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white transition-colors duration-200"
-                        aria-label="Twitter"
-                        title="Twitter"
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                    )}
-                    {store.instagram && (
-                      <a
-                        href={store.instagram}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 hover:opacity-90 text-white transition-opacity duration-200"
-                        aria-label="Instagram"
-                        title="Instagram"
-                      >
-                        <Instagram className="w-4 h-4" />
-                      </a>
-                    )}
-                    {store.linkedin && (
-                      <a
-                        href={store.linkedin}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white transition-colors duration-200"
-                        aria-label="LinkedIn"
-                        title="LinkedIn"
-                      >
-                        <Linkedin className="w-4 h-4" />
-                      </a>
-                    )}
-                    {store.youtube && (
-                      <a
-                        href={store.youtube}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors duration-200"
-                        aria-label="YouTube"
-                        title="YouTube"
-                      >
-                        <Youtube className="w-4 h-4" />
-                      </a>
-                    )}
-                    {store.tiktok && (
-                      <a
-                        href={store.tiktok}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-black hover:bg-gray-800 text-white transition-colors duration-200"
-                        aria-label="TikTok"
-                        title="TikTok"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
-                        </svg>
-                      </a>
-                    )}
-                    {store.whatsapp && (
-                      <a
-                        href={
-                          /^https?:\/\//i.test(store.whatsapp)
-                            ? store.whatsapp
-                            : `https://wa.me/${String(store.whatsapp).replace(/[^0-9+]/g, "")}`
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
-                        aria-label="WhatsApp"
-                        title="WhatsApp"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </a>
-                    )}
+                          {store.email}
+                        </a>
+                      )}
+                      {store.telephone && (
+                        <a
+                          className="text-indigo-500"
+                          href={`tel:${store.telephone}`}
+                        >
+                          {store.telephone}
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-3">
+                      {store.facebook && (
+                        <a
+                          href={store.facebook}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                          aria-label="Facebook"
+                          title="Facebook"
+                        >
+                          <Facebook className="w-4 h-4" />
+                        </a>
+                      )}
+                      {store.twitter && (
+                        <a
+                          href={store.twitter}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white transition-colors duration-200"
+                          aria-label="Twitter"
+                          title="Twitter"
+                        >
+                          <Twitter className="w-4 h-4" />
+                        </a>
+                      )}
+                      {store.instagram && (
+                        <a
+                          href={store.instagram}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 hover:opacity-90 text-white transition-opacity duration-200"
+                          aria-label="Instagram"
+                          title="Instagram"
+                        >
+                          <Instagram className="w-4 h-4" />
+                        </a>
+                      )}
+                      {store.linkedin && (
+                        <a
+                          href={store.linkedin}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-blue-700 hover:bg-blue-800 text-white transition-colors duration-200"
+                          aria-label="LinkedIn"
+                          title="LinkedIn"
+                        >
+                          <Linkedin className="w-4 h-4" />
+                        </a>
+                      )}
+                      {store.youtube && (
+                        <a
+                          href={store.youtube}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors duration-200"
+                          aria-label="YouTube"
+                          title="YouTube"
+                        >
+                          <Youtube className="w-4 h-4" />
+                        </a>
+                      )}
+                      {store.tiktok && (
+                        <a
+                          href={store.tiktok}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-black hover:bg-gray-800 text-white transition-colors duration-200"
+                          aria-label="TikTok"
+                          title="TikTok"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" />
+                          </svg>
+                        </a>
+                      )}
+                      {store.whatsapp && (
+                        <a
+                          href={
+                            /^https?:\/\//i.test(store.whatsapp)
+                              ? store.whatsapp
+                              : `https://wa.me/${String(store.whatsapp).replace(/[^0-9+]/g, "")}`
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
+                          aria-label="WhatsApp"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex-1" />
-              <a
-                href="#products"
-                className="inline-block px-6 py-3 rounded-full font-semibold text-white"
-                style={{
-                  background: "linear-gradient(90deg,#00E5FF,#FF00FF)",
-                  boxShadow: "0 0 24px rgba(0,229,255,0.35)",
-                }}
-              >
-                EXPLORE
-              </a>
+                <div className="flex-1" />
+                <a
+                  href="#products"
+                  className="inline-block px-6 py-3 rounded-full font-semibold text-white"
+                  style={{
+                    background: "linear-gradient(90deg,#00E5FF,#FF00FF)",
+                    boxShadow: "0 0 24px rgba(0,229,255,0.35)",
+                  }}
+                >
+                  EXPLORE
+                </a>
               </div>
             </div>
           </div>
@@ -644,9 +572,8 @@ const StorePage = () => {
           <div className="flex items-center justify-between mb-6">
             <h2
               id="featured"
-              className={`text-2xl md:text-3xl font-bold transition-colors duration-300 ${
-                colors[isDarkMode ? "dark" : "light"].text
-              }`}
+              className={`text-2xl md:text-3xl font-bold transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                }`}
               style={{
                 textShadow: isDarkMode
                   ? "0 0 20px rgba(0,229,255,0.4)"
@@ -657,13 +584,12 @@ const StorePage = () => {
             </h2>
             <button
               onClick={() => setShowWishlistOnly(!showWishlistOnly)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 ${
-                showWishlistOnly
-                  ? "bg-pink-600 text-white"
-                  : isDarkMode
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-300 ${showWishlistOnly
+                ? "bg-pink-600 text-white"
+                : isDarkMode
                   ? "bg-white/10 text-white hover:bg-white/20"
                   : "bg-gray-200 text-gray-900 hover:bg-gray-300"
-              }`}
+                }`}
             >
               {showWishlistOnly ? "❤️ Wishlist" : "🤍 Show Wishlist"}
             </button>
@@ -732,9 +658,8 @@ const StorePage = () => {
                     </button>
 
                     <div
-                      className={`h-40 flex items-center justify-center transition-colors duration-300 ${
-                        isDarkMode ? "bg-black/30" : "bg-gray-100"
-                      }`}
+                      className={`h-40 flex items-center justify-center transition-colors duration-300 ${isDarkMode ? "bg-black/30" : "bg-gray-100"
+                        }`}
                     >
                       <img
                         src={product.image}
@@ -745,9 +670,8 @@ const StorePage = () => {
                     <div className="p-4">
                       <div className="mb-2">
                         <h3
-                          className={`font-semibold transition-colors duration-300 mb-2 ${
-                            colors[isDarkMode ? "dark" : "light"].text
-                          }`}
+                          className={`font-semibold transition-colors duration-300 mb-2 ${colors[isDarkMode ? "dark" : "light"].text
+                            }`}
                         >
                           <RouterLink to={`/product/${product.id}`} state={{ storeId }}>
                             {product.name}
@@ -757,30 +681,26 @@ const StorePage = () => {
                           {product.hasDiscount ? (
                             <>
                               <span className="text-cyan-300 font-bold text-lg">
-                                ${Number(product.price).toFixed(2)}
+                                {product.specialPriceDisplay}
                               </span>
-                              <span className={`line-through text-sm ${
-                                colors[isDarkMode ? "dark" : "light"].textSecondary
-                              }`}>
-                                ${Number(product.originalPrice).toFixed(2)}
+                              <span className={`line-through text-sm ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                                }`}>
+                                {product.originalPriceDisplay}
                               </span>
                               <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
                                 SALE
                               </span>
                             </>
                           ) : (
-                            <span className="text-cyan-300 font-bold">
-                              {product.price !== null && product.price !== undefined
-                                ? `$${Number(product.price).toFixed(2)}`
-                                : product.priceDisplay || 'N/A'}
+                            <span className="text-cyan-300 font-bold text-lg">
+                              {product.priceDisplay}
                             </span>
                           )}
                         </div>
                       </div>
                       <p
-                        className={`text-xs mb-3 line-clamp-2 transition-colors duration-300 ${
-                          colors[isDarkMode ? "dark" : "light"].textSecondary
-                        }`}
+                        className={`text-xs mb-3 line-clamp-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                          }`}
                       >
                         {product.description}
                       </p>
@@ -789,11 +709,10 @@ const StorePage = () => {
                           <button
                             onClick={() => handleAddToCart(product)}
                             disabled={!product.inStock}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm ${
-                              product.inStock
-                                ? "bg-cyan-600 hover:bg-cyan-500"
-                                : "bg-gray-600 cursor-not-allowed"
-                            }`}
+                            className={`flex-1 px-3 py-2 rounded-lg text-sm ${product.inStock
+                              ? "bg-cyan-600 hover:bg-cyan-500"
+                              : "bg-gray-600 cursor-not-allowed"
+                              }`}
                             aria-label={
                               product.inStock
                                 ? `Add ${product.name} to cart`
@@ -813,10 +732,9 @@ const StorePage = () => {
                         </div>
                         {qty > 0 && (
                           <span
-                            className={`text-xs text-center transition-colors duration-300 ${
-                              colors[isDarkMode ? "dark" : "light"]
-                                .textSecondary
-                            }`}
+                            className={`text-xs text-center transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"]
+                              .textSecondary
+                              }`}
                           >
                             In cart: {qty}
                           </span>
@@ -834,9 +752,8 @@ const StorePage = () => {
       <section id="reviews" className="pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2
-            className={`text-2xl md:text-3xl font-bold mb-6 transition-colors duration-300 ${
-              colors[isDarkMode ? "dark" : "light"].text
-            }`}
+            className={`text-2xl md:text-3xl font-bold mb-6 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+              }`}
           >
             REVIEWS ({reviews.length})
           </h2>
@@ -851,17 +768,15 @@ const StorePage = () => {
               {showReviewForm && (
                 <form
                   onSubmit={handleSubmitReview}
-                  className={`mt-4 rounded-2xl p-6 backdrop-blur-sm transition-colors duration-300 ${
-                    isDarkMode
-                      ? "bg-white/6 border border-white/15"
-                      : "bg-white/80 border border-gray-200"
-                  }`}
+                  className={`mt-4 rounded-2xl p-6 backdrop-blur-sm transition-colors duration-300 ${isDarkMode
+                    ? "bg-white/6 border border-white/15"
+                    : "bg-white/80 border border-gray-200"
+                    }`}
                 >
                   <div className="mb-4">
                     <label
-                      className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`block text-sm font-medium mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                     >
                       Rating
                     </label>
@@ -873,13 +788,12 @@ const StorePage = () => {
                           onClick={() =>
                             setNewReview({ ...newReview, rating: i + 1 })
                           }
-                          className={`w-8 h-8 ${
-                            i < newReview.rating
-                              ? "text-yellow-400"
-                              : isDarkMode
+                          className={`w-8 h-8 ${i < newReview.rating
+                            ? "text-yellow-400"
+                            : isDarkMode
                               ? "text-white/30"
                               : "text-gray-300"
-                          }`}
+                            }`}
                         >
                           <svg fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -890,9 +804,8 @@ const StorePage = () => {
                   </div>
                   <div className="mb-4">
                     <label
-                      className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].text
-                      }`}
+                      className={`block text-sm font-medium mb-2 transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                        }`}
                     >
                       Comment
                     </label>
@@ -901,11 +814,10 @@ const StorePage = () => {
                       onChange={(e) =>
                         setNewReview({ ...newReview, comment: e.target.value })
                       }
-                      className={`w-full px-3 py-2 rounded-md transition-colors duration-200 ${
-                        isDarkMode
-                          ? "bg-gray-800/60 placeholder-gray-300"
-                          : "bg-white placeholder-gray-500"
-                      } ${colors[isDarkMode ? "dark" : "light"].text}`}
+                      className={`w-full px-3 py-2 rounded-md transition-colors duration-200 ${isDarkMode
+                        ? "bg-gray-800/60 placeholder-gray-300"
+                        : "bg-white placeholder-gray-500"
+                        } ${colors[isDarkMode ? "dark" : "light"].text}`}
                       rows={4}
                       placeholder="Share your experience with this store..."
                       required
@@ -921,68 +833,84 @@ const StorePage = () => {
               )}
             </div>
           )}
-          <div className="space-y-6">
-            {reviews.map((review) => (
-              <div
-                key={review.id}
-                className={`rounded-2xl p-6 backdrop-blur-sm transition-colors duration-300 ${
-                  isDarkMode
-                    ? "bg-white/6 border border-white/15"
-                    : "bg-white/80 border border-gray-200"
-                }`}
-              >
-                <div className="flex items-start">
-                  <img
-                    src={review.userAvatar}
-                    alt={review.userName}
-                    className="w-10 h-10 rounded-full mr-4"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4
-                        className={`font-medium transition-colors duration-300 ${
-                          colors[isDarkMode ? "dark" : "light"].text
-                        }`}
-                      >
-                        {review.userName}
-                      </h4>
-                      <span
-                        className={`text-sm transition-colors duration-300 ${
-                          colors[isDarkMode ? "dark" : "light"].textSecondary
-                        }`}
-                      >
-                        {review.date}
-                      </span>
-                    </div>
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < review.rating
-                              ? "text-yellow-400"
-                              : isDarkMode
-                              ? "text-white/30"
-                              : "text-gray-300"
-                          }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <p
-                      className={`transition-colors duration-300 ${
-                        colors[isDarkMode ? "dark" : "light"].textSecondary
+          <div className="px-1">
+            <Swiper
+              modules={[Autoplay, Pagination]}
+              spaceBetween={24}
+              slidesPerView={1}
+              pagination={{ clickable: true }}
+              autoplay={{
+                delay: 4000,
+                disableOnInteraction: false,
+              }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 2,
+                },
+                1024: {
+                  slidesPerView: 3,
+                },
+              }}
+              className="pb-12"
+            >
+              {reviews.map((review) => (
+                <SwiperSlide key={review.id}>
+                  <div
+                    className={`rounded-2xl p-6 backdrop-blur-sm transition-colors duration-300 h-full ${isDarkMode
+                      ? "bg-white/6 border border-white/15"
+                      : "bg-white/80 border border-gray-200"
                       }`}
-                    >
-                      {review.comment}
-                    </p>
+                  >
+                    <div className="flex items-start">
+                      <img
+                        src={review.userAvatar}
+                        alt={review.userName}
+                        className="w-10 h-10 rounded-full mr-4"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4
+                            className={`font-medium transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].text
+                              }`}
+                          >
+                            {review.userName}
+                          </h4>
+                          <span
+                            className={`text-sm transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                              }`}
+                          >
+                            {review.date}
+                          </span>
+                        </div>
+                        <div className="flex items-center mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-4 h-4 ${i < review.rating
+                                ? "text-yellow-400"
+                                : isDarkMode
+                                  ? "text-white/30"
+                                  : "text-gray-300"
+                                }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <p
+                          className={`transition-colors duration-300 ${colors[isDarkMode ? "dark" : "light"].textSecondary
+                            }`}
+                        >
+                          {review.comment}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </div>
         </div>
       </section>

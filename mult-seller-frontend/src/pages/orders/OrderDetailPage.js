@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { cancelOrder, getCustomerOrderById } from '../../api/services';
+import { cancelOrder, getCustomerOrderById, normalizeProduct } from '../../api/services';
 import toast from 'react-hot-toast';
 
 const OrderDetailPage = () => {
@@ -21,7 +21,7 @@ const OrderDetailPage = () => {
     if (res.success) {
       const fetchedOrder = res.data;
       const currentStatus = fetchedOrder.status || fetchedOrder.order_status || '';
-      
+
       // Check if status changed
       if (previousStatusRef.current && previousStatusRef.current !== currentStatus) {
         toast.success(`Order status changed to: ${currentStatus}`, {
@@ -29,10 +29,10 @@ const OrderDetailPage = () => {
           icon: '📦',
         });
       }
-      
+
       previousStatusRef.current = currentStatus;
       setOrder(fetchedOrder);
-      
+
       // Check if order is cancelled - redirect to orders page
       const statusLower = currentStatus.toLowerCase();
       if (['cancelled', 'canceled', 'void'].includes(statusLower)) {
@@ -54,13 +54,14 @@ const OrderDetailPage = () => {
       navigate('/login');
       return;
     }
-    
+
     fetchOrderDetails();
-    
+
     // Poll for order updates every 30 seconds
     const intervalId = setInterval(fetchOrderDetails, 30000);
-    
+
     return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isGuest, navigate]);
 
   const onCancel = async () => {
@@ -83,7 +84,7 @@ const OrderDetailPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : ''}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="h-16" />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className={`text-3xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Order Details</h1>
@@ -115,15 +116,55 @@ const OrderDetailPage = () => {
               <div>
                 <h2 className={`${isDarkMode ? 'text-white' : 'text-gray-900'} text-xl font-semibold mb-2`}>Items</h2>
                 <div className="space-y-3">
-                  {(order.products || order.items || []).map((p, idx) => (
-                    <div key={(p.product_id || p.id || idx) + ''} className={`flex justify-between items-center rounded-lg p-3 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                      <div>
-                        <div className={`${isDarkMode ? 'text-white' : 'text-gray-900'} font-medium`}>{p.name}</div>
-                        <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Qty: {p.quantity || p.qty}</div>
+                  {(order.products || order.items || []).map((p, idx) => {
+                    const normalized = normalizeProduct(p);
+
+                    // Logic to derive effective unit price from line total
+                    // This handles cases where 'price' field is original price but 'total' reflects discount
+                    const qty = Number(p.quantity || p.qty || 1);
+
+                    // Clean price strings to numbers
+                    const cleanPrice = (val) => {
+                      if (typeof val === 'number') return val;
+                      if (!val) return 0;
+                      return parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+                    };
+
+                    const statedPrice = cleanPrice(p.price);
+                    const lineTotal = cleanPrice(p.total || p.price_total);
+
+                    // Calculate derived unit price
+                    const derivedUnitPrice = qty > 0 ? lineTotal / qty : 0;
+
+                    // Check if derived price implies a discount (allow small float variance)
+                    const isDiscounted = derivedUnitPrice > 0 && statedPrice > 0 && derivedUnitPrice < (statedPrice - 0.01);
+
+                    // Determine display price
+                    let finalDisplayPrice;
+
+                    if (normalized?.hasDiscount) {
+                      // If normalizeProduct found a discount, use it
+                      finalDisplayPrice = normalized.specialPriceDisplay || normalized.priceDisplay;
+                    } else if (isDiscounted) {
+                      // Use derived price
+                      finalDisplayPrice = `$${derivedUnitPrice.toFixed(2)}`;
+                    } else {
+                      // Fallback to stated price or normalized display
+                      finalDisplayPrice = normalized?.priceDisplay || (statedPrice > 0 ? `$${statedPrice.toFixed(2)}` : (p.price || 'N/A'));
+                    }
+
+                    return (
+                      <div key={(p.product_id || p.id || idx) + ''} className={`flex justify-between items-center rounded-lg p-3 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                        <div>
+                          <div className={`${isDarkMode ? 'text-white' : 'text-gray-900'} font-medium`}>{p.name}</div>
+                          <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Qty: {qty}</div>
+                        </div>
+                        <div className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                          {finalDisplayPrice}
+                        </div>
                       </div>
-                      <div className={`${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>{p.total || p.price_total || p.price}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -134,7 +175,7 @@ const OrderDetailPage = () => {
                 >
                   Back to Orders
                 </button>
-                {(order.cancelable || ['pending','processing'].includes((order.status || '').toLowerCase())) && (
+                {(order.cancelable || ['pending', 'processing'].includes((order.status || '').toLowerCase())) && (
                   <button
                     onClick={onCancel}
                     disabled={canceling}

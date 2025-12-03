@@ -177,13 +177,16 @@ const mockProducts = {
 };
 
 // Normalize product shape from various backend formats
-function normalizeProduct(raw) {
+// Normalize product shape from various backend formats
+export function normalizeProduct(raw) {
   if (!raw) return null;
   // Collect images from multiple possible fields and dedupe
   const imageCandidates = [];
   if (Array.isArray(raw.images)) imageCandidates.push(...raw.images);
   if (Array.isArray(raw.original_images)) imageCandidates.push(...raw.original_images);
   if (raw.image) imageCandidates.push(raw.image);
+  if (raw.thumb) imageCandidates.push(raw.thumb);
+  if (raw.thumbnail) imageCandidates.push(raw.thumbnail);
   if (raw.original_image) imageCandidates.push(raw.original_image);
   if (raw.image_url) imageCandidates.push(raw.image_url);
   if (raw.picture) imageCandidates.push(raw.picture);
@@ -210,16 +213,16 @@ function normalizeProduct(raw) {
 
   // Special/discount price handling
   let rawSpecialPrice = raw.special || raw.special_price || raw.discount_price || raw.sale_price || null;
-  
+
   // Check if discounts array exists and has items
   if (!rawSpecialPrice && raw.discounts && Array.isArray(raw.discounts) && raw.discounts.length > 0) {
     const firstDiscount = raw.discounts[0];
     rawSpecialPrice = firstDiscount.price || firstDiscount.price_excluding_tax;
   }
-  
+
   const specialNumeric = typeof rawSpecialPrice === "string" ? parseFloat(String(rawSpecialPrice).replace(/[^0-9.]/g, "")) : rawSpecialPrice;
   const hasDiscount = specialNumeric && Number.isFinite(specialNumeric) && specialNumeric < (numeric || Infinity);
-  
+
   // Original price fields
   const rawOriginalPrice = raw.original_price || raw.regular_price || (hasDiscount ? rawPrice : null);
   const originalNumeric = typeof rawOriginalPrice === "string" ? parseFloat(String(rawOriginalPrice).replace(/[^0-9.]/g, "")) : rawOriginalPrice;
@@ -339,7 +342,7 @@ export const getStores = async () => {
  */
 export const sendContact = async (payload) => {
   try {
-  const response = await api.post("/contact", payload);
+    const response = await api.post("/contact", payload);
     // Normalize response
     if (response && (response.status === 200 || response.status === 201)) {
       return { success: true, data: response.data };
@@ -393,11 +396,11 @@ export const getStoresByCategory = async (categoryIdOrSlug) => {
       // Return only API data - no mock fallback
       return { success: !!ok, data: mapped };
     }
-    
+
     // If res.data is empty/undefined
     console.warn("API response has no data");
     return { success: false, data: [] };
-    
+
   } catch (err) {
     // If the API call fails, return error
     console.error("getStoresByCategory API failed:", err?.message || err);
@@ -539,9 +542,9 @@ export const searchStores = async (query) => {
         if (Array.isArray(list) && list.length >= 0) {
           return { success: true, data: list };
         }
-      } catch (_e) {}
+      } catch (_e) { }
     }
-  } catch (_err) {}
+  } catch (_err) { }
   // Fallback: use home page builder and filter client-side
   try {
     const home = await getHomePageBuilder();
@@ -563,7 +566,7 @@ export const searchStores = async (query) => {
       });
       return { success: true, data: filtered };
     }
-  } catch (_err2) {}
+  } catch (_err2) { }
   return { success: true, data: [] };
 };
 
@@ -587,9 +590,9 @@ export const searchProducts = async (query) => {
           const normalized = list.map((p) => normalizeProduct(p));
           return { success: true, data: normalized };
         }
-      } catch (_e) {}
+      } catch (_e) { }
     }
-  } catch (_err) {}
+  } catch (_err) { }
   // Fallback: fetch stores from home builder and query first few products
   try {
     const storesRes = await getHomePageBuilder();
@@ -617,7 +620,7 @@ export const searchProducts = async (query) => {
             }
           }
         }
-      } catch (_e) {}
+      } catch (_e) { }
     }
     return { success: true, data: results };
   } catch (_err2) {
@@ -643,7 +646,7 @@ const getHomeCached = async () => {
         __searchCache.home = res.data;
         __searchCache.homeAt = now;
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   return __searchCache.home;
 };
@@ -760,17 +763,17 @@ export const getStoreReviews = async (storeId) => {
     if (storeRes && storeRes.data) {
       const payload = storeRes.data;
       const storeData = payload.data || payload;
-      
+
       // Reviews are in data.reviews array
       if (Array.isArray(storeData.reviews)) {
         return { success: true, data: storeData.reviews };
       }
-      
+
       // If store payload includes rating metadata but no reviews array, return empty
       if (typeof storeData.total_reviews !== "undefined") {
         return { success: true, data: [] };
       }
-      
+
       // Also check if reviews are at the top level
       if (Array.isArray(payload.reviews)) {
         return { success: true, data: payload.reviews };
@@ -1146,7 +1149,7 @@ export const getWishlist = async (customerId) => {
         }
       }
     }
-    
+
     if (!userId) {
       console.warn("getWishlist: No customer ID available");
       return { success: false, data: [], error: "No customer ID" };
@@ -1342,11 +1345,14 @@ export const getLatest = async () => {
   try {
     const res = await api.get('/latest');
     console.log("getLatest response:", res);
-    
+
     if (res && res.data) {
       const body = res.data;
       const data = body.data || body.products || body;
-      return { success: true, data: Array.isArray(data) ? data : [] };
+      const arr = Array.isArray(data) ? data : [];
+      // Normalize products to ensure price/discount fields are consistent
+      const normalized = arr.map(normalizeProduct);
+      return { success: true, data: normalized };
     }
     return { success: false, data: [] };
   } catch (err) {
@@ -1445,14 +1451,14 @@ export const getShippingMethods = async () => {
 export const selectShippingMethod = async (code) => {
   try {
     if (!code) return { success: false, error: 'No shipping method code provided' };
-    
+
     console.log('🚚 selectShippingMethod called with code:', code);
-    
+
     // Fetch available methods first to ensure code is valid
     const availableRes = await api.get('/shippingmethods');
     const availableBody = availableRes?.data || {};
     console.log('📋 Available shipping methods:', availableBody);
-    
+
     // Extract and validate the code exists in available methods
     let methods = [];
     if (availableBody.data) {
@@ -1461,35 +1467,35 @@ export const selectShippingMethod = async (code) => {
       else if (raw.quote || raw.quotes) {
         const quotes = raw.quote || raw.quotes;
         if (typeof quotes === 'object') {
-          methods = Object.values(quotes).flatMap(provider => 
+          methods = Object.values(quotes).flatMap(provider =>
             Array.isArray(provider.quote) ? provider.quote : []
           );
         }
       }
     }
-    
-    const matchingMethod = methods.find(m => 
-      m.code === code || 
+
+    const matchingMethod = methods.find(m =>
+      m.code === code ||
       `${m.parent_code || ''}.${m.code}` === code ||
       m.value === code
     );
-    
+
     if (!matchingMethod && methods.length > 0) {
       console.warn('⚠️ Code not found in available methods. Available:', methods.map(m => m.code));
     }
-    
+
     // POST shipping method selection
     const payload = { shipping_method: String(code), agree: 1 };
     console.log('📦 Posting shipping method:', payload);
-    
+
     const res = await api.post('/shippingmethods', payload, { headers: { Accept: 'application/json' } });
     const body = res?.data || {};
-    
+
     console.log('📬 Shipping method response:', body);
-    
+
     const ok = body.success === 1 || body.success === true || !!body.data;
     const errors = body.error || body.errors || [];
-    
+
     if (!ok && Array.isArray(errors)) {
       console.warn('⚠️ Shipping method selection failed:', errors);
       const hasRequiredWarning = errors.some(e => /shipping method required/i.test(String(e)));
@@ -1500,12 +1506,12 @@ export const selectShippingMethod = async (code) => {
         console.error('   Cart status: Check if cart has items and totals');
       }
     }
-    
-    return { 
-      success: !!ok, 
-      data: body.data || null, 
-      message: body.message || null, 
-      error: body.error || body.errors || null 
+
+    return {
+      success: !!ok,
+      data: body.data || null,
+      message: body.message || null,
+      error: body.error || body.errors || null
     };
   } catch (err) {
     console.error('💥 selectShippingMethod exception:', err?.response?.data || err?.message || err);
@@ -1676,7 +1682,7 @@ export const getClientToken = async () => {
     console.error("Client token error:", error);
     return null;
   }
-  }
+}
 
 export const getClientCredentialsToken = async (
   clientId = process.env.REACT_APP_OAUTH_CLIENT_ID || "shopping_oauth_client",
@@ -1695,8 +1701,8 @@ export const getClientCredentialsToken = async (
     explicitTokenUrl && typeof explicitTokenUrl === "string"
       ? explicitTokenUrl
       : base
-      ? `${base}/oauth2/token`
-      : defaultAbsoluteTokenUrl;
+        ? `${base}/oauth2/token`
+        : defaultAbsoluteTokenUrl;
   const response = await api.post(url, payload, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
@@ -1740,7 +1746,7 @@ export const fetchAndStoreClientToken = async () => {
   if (token) {
     try {
       localStorage.setItem("client_token", token);
-    } catch (_e) {}
+    } catch (_e) { }
   }
   return data;
 };
@@ -1856,28 +1862,28 @@ export const loginUser = async (email, password) => {
 
         const normalizedUser = userNode
           ? {
-              id:
-                userNode.id ||
-                userNode.user_id ||
-                userNode.customer_id ||
-                topData.id ||
-                null,
-              name:
-                userNode.name ||
-                [userNode.firstname, userNode.lastname]
-                  .filter(Boolean)
-                  .join(" ") ||
-                "User",
-              email: userNode.email || email,
-              firstname: userNode.firstname,
-              lastname: userNode.lastname,
-              username: userNode.username,
-              telephone: userNode.telephone,
-              avatar:
-                userNode.avatar ||
-                (topData.user && topData.user.avatar) ||
-                "https://via.placeholder.com/40",
-            }
+            id:
+              userNode.id ||
+              userNode.user_id ||
+              userNode.customer_id ||
+              topData.id ||
+              null,
+            name:
+              userNode.name ||
+              [userNode.firstname, userNode.lastname]
+                .filter(Boolean)
+                .join(" ") ||
+              "User",
+            email: userNode.email || email,
+            firstname: userNode.firstname,
+            lastname: userNode.lastname,
+            username: userNode.username,
+            telephone: userNode.telephone,
+            avatar:
+              userNode.avatar ||
+              (topData.user && topData.user.avatar) ||
+              "https://via.placeholder.com/40",
+          }
           : null;
 
         return {
